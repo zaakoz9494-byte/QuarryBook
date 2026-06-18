@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuarryBook – Expense Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 30,26 2,26" fill="none" stroke="#4ade80" stroke-width="2.5"/>
+        <polygon points="16,9 24,23 8,23" fill="#4ade80" opacity="0.3"/>
+        <line x1="16" y1="9" x2="16" y2="23" stroke="#4ade80" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <span class="logo-main">QuarryBook</span>
+      <span class="logo-sub">Stone Business</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">MAIN</div>
+    <button class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" data-page="expenses" onclick="navigateTo('expenses')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+      Expenses
+    </button>
+    <button class="nav-item" data-page="income" onclick="navigateTo('income')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Income
+    </button>
+    <button class="nav-item" data-page="reports" onclick="navigateTo('reports')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </button>
+    <button class="nav-item" data-page="search" onclick="navigateTo('search')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search
+    </button>
+    <div class="nav-section-label">SYSTEM</div>
+    <button class="nav-item" data-page="logs" onclick="navigateTo('logs')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Activity Logs
+    </button>
+    <button class="nav-item" data-page="settings" onclick="navigateTo('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </nav>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="userAvatarSidebar">A</div>
+    <div class="user-info">
+      <span class="user-name" id="sidebarUserName">Admin</span>
+      <span class="user-role">Owner</span>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="Logout">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ─── MAIN WRAPPER ─── -->
+<div class="main-wrapper" id="mainWrapper">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">
+        <svg viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showNotifications()" title="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="badge" id="notifBadge">3</span>
+      </button>
+      <button class="add-expense-btn" onclick="openExpenseModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Expense
+      </button>
+      <button class="add-expense-btn income-btn" onclick="openIncomeModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Income
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── PAGES ─── -->
+  <main class="content">
+
+    <!-- ════ DASHBOARD PAGE ════ -->
+    <section class="page active" id="page-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card accent">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">Today's Expenses</span>
+            <span class="stat-value" id="statToday">₹0</span>
+          </div>
+          <div class="stat-trend up" id="trendToday">+0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">This Week</span>
+            <span class="stat-value" id="statWeek">₹0</span>
+          </div>
+          <div class="stat-trend" id="trendWeek">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">This Month Exp.</span>
+            <span class="stat-value" id="statMonth">₹0</span>
+          </div>
+          <div class="stat-trend" id="trendMonth">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">Total Expenses</span>
+            <span class="stat-value" id="statTotal">₹0</span>
+          </div>
+          <div class="stat-trend" id="trendTotal">All time</div>
+        </div>
+        <!-- Income stats -->
+        <div class="stat-card income-card">
+          <div class="stat-icon income-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">Today's Income</span>
+            <span class="stat-value income-value" id="statIncToday">₹0</span>
+          </div>
+        </div>
+        <div class="stat-card income-card">
+          <div class="stat-icon income-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">This Month Income</span>
+            <span class="stat-value income-value" id="statIncMonth">₹0</span>
+          </div>
+        </div>
+        <div class="stat-card income-card">
+          <div class="stat-icon income-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">Total Income</span>
+            <span class="stat-value income-value" id="statIncTotal">₹0</span>
+          </div>
+        </div>
+        <div class="stat-card net-card">
+          <div class="stat-icon net-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+          <div class="stat-body">
+            <span class="stat-label">Net This Month</span>
+            <span class="stat-value" id="statNetMonth">₹0</span>
+          </div>
+          <div class="stat-trend">Income − Expense</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card chart-card wide">
+          <div class="card-header">
+            <h3>Monthly Trend</h3>
+            <div class="chart-tabs">
+              <button class="chart-tab active" onclick="switchChartView('monthly')">Monthly</button>
+              <button class="chart-tab" onclick="switchChartView('weekly')">Weekly</button>
+            </div>
+          </div>
+          <canvas id="trendChart" height="200"></canvas>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header"><h3>By Category</h3></div>
+          <canvas id="categoryChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Recent Transactions</h3>
+          <button class="text-btn" onclick="navigateTo('expenses')">View All →</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="recentTable">
+            <thead>
+              <tr><th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th>Method</th><th>Amount</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="recentBody"></tbody>
+          </table>
+          <div class="empty-state" id="dashEmptyState" style="display:none">
+            <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            <p>No expenses yet. Add your first expense!</p>
+            <button class="btn-primary" onclick="openExpenseModal()">Add Expense</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ EXPENSES PAGE ════ -->
+    <section class="page" id="page-expenses">
+      <div class="page-toolbar">
+        <div class="filter-row">
+          <select id="filterCategory" onchange="renderExpenses()">
+            <option value="">All Categories</option>
+            <option>Fuel</option>
+            <option>Vehicle Maintenance</option>
+            <option>Driver Charges</option>
+            <option>Loading Charges</option>
+            <option>Food & Accommodation</option>
+            <option>Miscellaneous</option>
+          </select>
+          <select id="filterMethod" onchange="renderExpenses()">
+            <option value="">All Methods</option>
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>UPI</option>
+          </select>
+          <input type="date" id="filterFrom" onchange="renderExpenses()" />
+          <input type="date" id="filterTo" onchange="renderExpenses()" />
+          <button class="btn-ghost" onclick="clearFilters()">Clear</button>
+        </div>
+        <button class="add-expense-btn" onclick="openExpenseModal()">+ Add Expense</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="expensesTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                <th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th>Method</th><th>Amount</th><th>Bill</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expensesBody"></tbody>
+          </table>
+          <div class="empty-state" id="expEmptyState" style="display:none">
+            <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            <p>No expenses found. Adjust filters or add a new expense.</p>
+          </div>
+        </div>
+        <div class="table-footer">
+          <span id="expCount">0 expenses</span>
+          <span id="expTotal" class="exp-total">Total: ₹0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ INCOME PAGE ════ -->
+    <section class="page" id="page-income">
+      <div class="page-toolbar">
+        <div class="filter-row">
+          <select id="filterIncCategory" onchange="renderIncomes()">
+            <option value="">All Categories</option>
+          </select>
+          <select id="filterIncMethod" onchange="renderIncomes()">
+            <option value="">All Methods</option>
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>UPI</option>
+          </select>
+          <input type="date" id="filterIncFrom" onchange="renderIncomes()" />
+          <input type="date" id="filterIncTo" onchange="renderIncomes()" />
+          <button class="btn-ghost" onclick="clearIncomeFilters()">Clear</button>
+        </div>
+        <button class="add-expense-btn income-btn" onclick="openIncomeModal()">+ Add Income</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="incomesTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Qty (Units)</th><th>Rate/Unit</th><th>Buyer</th><th>Method</th><th>Amount</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="incomesBody"></tbody>
+          </table>
+          <div class="empty-state" id="incEmptyState" style="display:none">
+            <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <p>No income entries yet. Add your first income!</p>
+            <button class="btn-primary" onclick="openIncomeModal()">Add Income</button>
+          </div>
+        </div>
+        <div class="table-footer">
+          <span id="incCount">0 entries</span>
+          <span id="incTotal" class="exp-total income-amount">Total: ₹0</span>
+        </div>
+      </div>
+    </section>
+    <section class="page" id="page-reports">
+      <div class="report-controls card">
+        <div class="filter-row">
+          <label>From <input type="date" id="reportFrom" /></label>
+          <label>To <input type="date" id="reportTo" /></label>
+          <select id="reportCategory">
+            <option value="">All Categories</option>
+            <option>Fuel</option>
+            <option>Vehicle Maintenance</option>
+            <option>Driver Charges</option>
+            <option>Loading Charges</option>
+            <option>Food & Accommodation</option>
+            <option>Miscellaneous</option>
+          </select>
+          <button class="btn-primary" onclick="generateReport()">Generate</button>
+        </div>
+        <div class="export-btns">
+          <button class="btn-ghost" onclick="exportExcel()">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Export Excel
+          </button>
+          <button class="btn-ghost" onclick="exportPDF()">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Export PDF
+          </button>
+          <button class="btn-ghost" onclick="printReport()">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Print
+          </button>
+        </div>
+      </div>
+
+      <div class="report-summary stat-grid" id="reportSummary" style="display:none">
+        <div class="stat-card"><div class="stat-body"><span class="stat-label">Total</span><span class="stat-value" id="rTotal">₹0</span></div></div>
+        <div class="stat-card"><div class="stat-body"><span class="stat-label">Transactions</span><span class="stat-value" id="rCount">0</span></div></div>
+        <div class="stat-card"><div class="stat-body"><span class="stat-label">Avg / Day</span><span class="stat-value" id="rAvg">₹0</span></div></div>
+        <div class="stat-card"><div class="stat-body"><span class="stat-label">Highest</span><span class="stat-value" id="rMax">₹0</span></div></div>
+      </div>
+
+      <div class="card" id="reportTableCard" style="display:none">
+        <div class="card-header"><h3 id="reportTitle">Report</h3></div>
+        <div class="table-wrap">
+          <table class="data-table" id="reportTable">
+            <thead><tr><th>#</th><th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th>Method</th><th>Amount</th></tr></thead>
+            <tbody id="reportBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ SEARCH PAGE ════ -->
+    <section class="page" id="page-search">
+      <div class="search-hero">
+        <div class="search-box-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="globalSearch" placeholder="Search by vendor, category, description, or amount..." oninput="performSearch()" autocomplete="off" />
+        </div>
+        <div class="search-filters">
+          <button class="chip active" data-filter="all" onclick="setSearchFilter('all', this)">All</button>
+          <button class="chip" data-filter="vendor" onclick="setSearchFilter('vendor', this)">Vendor</button>
+          <button class="chip" data-filter="category" onclick="setSearchFilter('category', this)">Category</button>
+          <button class="chip" data-filter="amount" onclick="setSearchFilter('amount', this)">Amount</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th>Method</th><th>Amount</th><th>Actions</th></tr></thead>
+            <tbody id="searchBody"></tbody>
+          </table>
+          <div class="empty-state" id="searchEmptyState">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <p>Start typing to search expenses</p>
+          </div>
+        </div>
+        <div class="table-footer"><span id="searchCount"></span></div>
+      </div>
+    </section>
+
+    <!-- ════ ACTIVITY LOGS PAGE ════ -->
+    <section class="page" id="page-logs">
+      <div class="card">
+        <div class="card-header">
+          <h3>Activity Logs</h3>
+          <button class="btn-ghost danger" onclick="clearLogs()">Clear Logs</button>
+        </div>
+        <div id="logsList" class="logs-list"></div>
+        <div class="empty-state" id="logsEmptyState" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+          <p>No activity logs yet</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ SETTINGS PAGE ════ -->
+    <section class="page" id="page-settings">
+      <div class="settings-grid">
+        <!-- Users -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Users</h3><button class="btn-primary small" onclick="openUserModal()">+ Add User</button></div>
+          <div id="usersList"></div>
+        </div>
+
+        <!-- Custom Expense Categories -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Custom Expense Categories</h3></div>
+          <div id="customExpCatList"></div>
+          <div class="cat-add-row">
+            <input type="text" id="newExpCatInput" placeholder="New category name…" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomExpCat();}" />
+            <button class="btn-primary small" onclick="addCustomExpCat()">Add</button>
+          </div>
+        </div>
+
+        <!-- Custom Income Categories -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Custom Income Categories</h3></div>
+          <p class="settings-note" style="margin-bottom:8px">Built-in: 1st Quality, 2nd Quality, 3rd Quality stone loads</p>
+          <div id="customIncCatList"></div>
+          <div class="cat-add-row">
+            <input type="text" id="newIncCatInput" placeholder="New income category…" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomIncCat();}" />
+            <button class="btn-primary small" onclick="addCustomIncCat()">Add</button>
+          </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Backup & Restore</h3></div>
+          <div class="settings-actions">
+            <button class="btn-primary" onclick="backupData()">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Backup
+            </button>
+            <label class="btn-ghost upload-label">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Restore Backup
+              <input type="file" accept=".json" onchange="restoreData(event)" hidden />
+            </label>
+          </div>
+          <p class="settings-note">Backups include all expenses, users, and logs. Store securely.</p>
+        </div>
+
+        <!-- Appearance -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Appearance</h3></div>
+          <div class="setting-row">
+            <span>Dark Mode</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="darkToggle" checked onchange="toggleTheme()" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>Security</h3></div>
+          <div class="setting-row">
+            <span>Auto-logout (minutes)</span>
+            <select id="autoLogout" onchange="saveSettings()">
+              <option value="0">Never</option>
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="60">1 hour</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>Require PIN on open</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="pinToggle" onchange="saveSettings()" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="card settings-card">
+          <div class="card-header"><h3>About</h3></div>
+          <div class="about-info">
+            <div class="about-logo">
+              <svg viewBox="0 0 32 32" fill="none"><polygon points="16,2 30,26 2,26" fill="none" stroke="#4ade80" stroke-width="2.5"/><polygon points="16,9 24,23 8,23" fill="#4ade80" opacity="0.3"/></svg>
+            </div>
+            <p><strong>QuarryBook v1.0</strong></p>
+            <p>Premium Expense Manager for Stone Businesses</p>
+            <p class="muted">© 2025 QuarryBook. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ─── EXPENSE MODAL ─── -->
+<div class="modal-overlay" id="expenseModal" onclick="closeOnOverlay(event, 'expenseModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Expense</h2>
+      <button class="modal-close" onclick="closeExpenseModal()">×</button>
+    </div>
+    <form class="modal-form" id="expenseForm" onsubmit="saveExpense(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="expDate" required />
+        </div>
+        <div class="form-group">
+          <label>Amount (₹) *</label>
+          <input type="number" id="expAmount" placeholder="0.00" step="0.01" min="0" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="expCategory" required>
+            <option value="">Select category</option>
+            <option>Fuel</option>
+            <option>Vehicle Maintenance</option>
+            <option>Driver Charges</option>
+            <option>Loading Charges</option>
+            <option>Food & Accommodation</option>
+            <option>Miscellaneous</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Payment Method *</label>
+          <select id="expMethod" required>
+            <option value="">Select method</option>
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>UPI</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Supplier / Vendor Name</label>
+        <input type="text" id="expVendor" placeholder="e.g. Ram Diesel Pump" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="expDesc" rows="2" placeholder="Brief description of the expense..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Bill Upload (Image / PDF)</label>
+        <div class="file-drop" id="fileDrop" onclick="document.getElementById('billFile').click()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="fileLabel">Click to upload bill</span>
+        </div>
+        <input type="file" id="billFile" accept="image/*,.pdf" onchange="handleFileUpload(event)" hidden />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="closeExpenseModal()">Cancel</button>
+        <button type="submit" class="btn-primary" id="saveBtn">Save Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── INCOME MODAL ─── -->
+<div class="modal-overlay" id="incomeModal" onclick="closeOnOverlay(event, 'incomeModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="incModalTitle">Add Income</h2>
+      <button class="modal-close" onclick="closeIncomeModal()">×</button>
+    </div>
+    <form class="modal-form" id="incomeForm" onsubmit="saveIncome(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="incDate" required />
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="incCategory" required>
+            <option value="">Select category</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantity (units / loads)</label>
+          <input type="number" id="incQuantity" placeholder="e.g. 5" step="0.01" min="0" oninput="calcIncomeTotal()" />
+        </div>
+        <div class="form-group">
+          <label>Rate per Unit (₹)</label>
+          <input type="number" id="incRatePerUnit" placeholder="e.g. 1200" step="0.01" min="0" oninput="calcIncomeTotal()" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Total Amount (₹) *</label>
+          <input type="number" id="incAmount" placeholder="0.00" step="0.01" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Payment Method *</label>
+          <select id="incMethod" required>
+            <option value="">Select method</option>
+            <option>Cash</option>
+            <option>Bank</option>
+            <option>UPI</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Buyer / Customer Name</label>
+        <input type="text" id="incBuyer" placeholder="e.g. Ravi Constructions" />
+      </div>
+      <div class="form-group">
+        <label>Description / Notes</label>
+        <textarea id="incDesc" rows="2" placeholder="Brief notes about this income…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Receipt Upload (Image / PDF)</label>
+        <div class="file-drop" id="incFileDrop" onclick="document.getElementById('incBillFile').click()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="incFileLabel">Click to upload receipt</span>
+        </div>
+        <input type="file" id="incBillFile" accept="image/*,.pdf" onchange="handleIncFileUpload(event)" hidden />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="closeIncomeModal()">Cancel</button>
+        <button type="submit" class="btn-primary income-btn" id="incSaveBtn">Save Income</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── USER MODAL ─── -->
+<div class="modal-overlay" id="userModal" onclick="closeOnOverlay(event, 'userModal')">
+  <div class="modal small-modal">
+    <div class="modal-header">
+      <h2>Add User</h2>
+      <button class="modal-close" onclick="document.getElementById('userModal').classList.remove('open')">×</button>
+    </div>
+    <form class="modal-form" onsubmit="addUser(event)">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" id="userName" required placeholder="Full name" />
+      </div>
+      <div class="form-group">
+        <label>Role *</label>
+        <select id="userRole" required>
+          <option value="">Select role</option>
+          <option>Owner</option>
+          <option>Manager</option>
+          <option>Viewer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>PIN (4 digits) *</label>
+        <input type="password" id="userPin" maxlength="4" pattern="\d{4}" placeholder="••••" required />
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" onclick="document.getElementById('userModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn-primary">Add User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── LOGIN SCREEN ─── -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 48 48" fill="none"><polygon points="24,3 45,39 3,39" fill="none" stroke="#4ade80" stroke-width="3"/><polygon points="24,13 37,35 11,35" fill="#4ade80" opacity="0.25"/><line x1="24" y1="13" x2="24" y2="35" stroke="#4ade80" stroke-width="2"/></svg>
+    </div>
+    <h1>QuarryBook</h1>
+    <p class="login-sub">Stone Business Expense Manager</p>
+    <form class="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Enter username" required />
+      </div>
+      <div class="form-group">
+        <label>PIN</label>
+        <input type="password" id="loginPin" placeholder="••••" maxlength="4" required />
+      </div>
+      <button type="submit" class="btn-primary full-width">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── BILL VIEWER ─── -->
+<div class="modal-overlay" id="billViewer" onclick="document.getElementById('billViewer').classList.remove('open')">
+  <div class="bill-viewer-inner">
+    <button class="modal-close" onclick="document.getElementById('billViewer').classList.remove('open')">×</button>
+    <img id="billViewerImg" src="" alt="Bill" style="display:none;max-width:100%;max-height:80vh;" />
+    <iframe id="billViewerPdf" src="" style="display:none;width:100%;height:80vh;" frameborder="0"></iframe>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
