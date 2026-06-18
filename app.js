@@ -318,4 +318,4 @@ async function initApp() {
   await load();
   
   // Skip or show login view wrapper based on session
-  if (!state.settings
+  if (!state.settings)
