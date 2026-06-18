@@ -1,7 +1,75 @@
 /* ════════════════════════════════════
    QuarryBook – app.js
    Full expense management logic
+   Firestore-connected version
 ════════════════════════════════════ */
+
+// ─── FIREBASE SETUP ──────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, getDoc, deleteDoc,
+  collection, getDocs, onSnapshot, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCSuQFviR93T-VQgy6U7xLUlIAvXPOgxTY",
+  authDomain: "quarry-book-noufal.firebaseapp.com",
+  projectId: "quarry-book-noufal",
+  storageBucket: "quarry-book-noufal.firebasestorage.app",
+  messagingSenderId: "895876955937",
+  appId: "1:895876955937:web:f3e895410003e4f8fa4860",
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+// ─── FIRESTORE HELPERS ───────────────────────────────
+// Each collection stores documents with the record's id as the doc key.
+
+async function fsSet(colName, id, data) {
+  try {
+    await setDoc(doc(db, colName, String(id)), data);
+  } catch(e) { console.error(`Firestore set [${colName}/${id}]`, e); }
+}
+
+async function fsDel(colName, id) {
+  try {
+    await deleteDoc(doc(db, colName, String(id)));
+  } catch(e) { console.error(`Firestore delete [${colName}/${id}]`, e); }
+}
+
+async function fsGetAll(colName) {
+  try {
+    const snap = await getDocs(collection(db, colName));
+    return snap.docs.map(d => d.data());
+  } catch(e) { console.error(`Firestore getAll [${colName}]`, e); return []; }
+}
+
+// Single shared settings doc
+async function fsSetSettings(data) {
+  try {
+    await setDoc(doc(db, 'meta', 'settings'), data);
+  } catch(e) { console.error('Firestore set settings', e); }
+}
+async function fsGetSettings() {
+  try {
+    const snap = await getDoc(doc(db, 'meta', 'settings'));
+    return snap.exists() ? snap.data() : {};
+  } catch(e) { return {}; }
+}
+
+// Single shared customCategories doc
+async function fsSetCategories(data) {
+  try {
+    await setDoc(doc(db, 'meta', 'categories'), data);
+  } catch(e) { console.error('Firestore set categories', e); }
+}
+async function fsGetCategories() {
+  try {
+    const snap = await getDoc(doc(db, 'meta', 'categories'));
+    return snap.exists() ? snap.data() : { exp: [], inc: [] };
+  } catch(e) { return { exp: [], inc: [] }; }
+}
 
 // ─── STATE ───────────────────────────────────────────
 let state = {
@@ -36,28 +104,68 @@ function getIncomeCategories() {
 // Keep alias for chart backward-compat
 function getCATEGORIES() { return getExpenseCategories(); }
 
-// ─── STORAGE ─────────────────────────────────────────
+// ─── STORAGE (Firestore) ──────────────────────────────
+// save() is kept for theme/UI preferences only (non-sensitive, local)
 function save() {
   try {
-    localStorage.setItem('qb_expenses', JSON.stringify(state.expenses));
-    localStorage.setItem('qb_incomes',  JSON.stringify(state.incomes));
-    localStorage.setItem('qb_users', JSON.stringify(state.users));
-    localStorage.setItem('qb_logs', JSON.stringify(state.logs));
-    localStorage.setItem('qb_settings', JSON.stringify(state.settings));
-    localStorage.setItem('qb_custom_exp_cats',  JSON.stringify(state.customExpenseCategories));
-    localStorage.setItem('qb_custom_inc_cats',  JSON.stringify(state.customIncomeCategories));
+    localStorage.setItem('qb_theme', document.documentElement.getAttribute('data-theme') || 'dark');
   } catch(e) { console.warn('Storage error', e); }
 }
 
-function load() {
+// saveExpense – write one expense to Firestore
+async function saveExpense_fs(exp) {
+  await fsSet('expenses', exp.id, exp);
+}
+async function deleteExpense_fs(id) {
+  await fsDel('expenses', id);
+}
+
+// saveIncome – write one income to Firestore
+async function saveIncome_fs(inc) {
+  await fsSet('incomes', inc.id, inc);
+}
+async function deleteIncome_fs(id) {
+  await fsDel('incomes', id);
+}
+
+// saveUser / deleteUser
+async function saveUser_fs(user) {
+  await fsSet('users', user.id, user);
+}
+async function deleteUser_fs(id) {
+  await fsDel('users', id);
+}
+
+// logs – write single log entry
+async function saveLog_fs(log) {
+  await fsSet('logs', log.time.replace(/[:.]/g, '-'), log);
+}
+
+// settings & categories
+async function saveSettings_fs() {
+  await fsSetSettings(state.settings);
+  await fsSetCategories({ exp: state.customExpenseCategories, inc: state.customIncomeCategories });
+}
+
+async function load() {
   try {
-    state.expenses  = JSON.parse(localStorage.getItem('qb_expenses') || '[]');
-    state.incomes   = JSON.parse(localStorage.getItem('qb_incomes')  || '[]');
-    state.users     = JSON.parse(localStorage.getItem('qb_users') || '[{"id":1,"name":"Admin","role":"Owner","pin":"1234"}]');
-    state.logs      = JSON.parse(localStorage.getItem('qb_logs') || '[]');
-    state.settings  = JSON.parse(localStorage.getItem('qb_settings') || '{}');
-    state.customExpenseCategories = JSON.parse(localStorage.getItem('qb_custom_exp_cats') || '[]');
-    state.customIncomeCategories  = JSON.parse(localStorage.getItem('qb_custom_inc_cats')  || '[]');
+    showToast('Loading data…', 'success');
+    const [expenses, incomes, users, logs, settings, cats] = await Promise.all([
+      fsGetAll('expenses'),
+      fsGetAll('incomes'),
+      fsGetAll('users'),
+      fsGetAll('logs'),
+      fsGetSettings(),
+      fsGetCategories(),
+    ]);
+
+    state.expenses = expenses.sort((a,b) => b.id - a.id);
+    state.incomes  = incomes.sort((a,b)  => b.id - a.id);
+    state.users    = users.length ? users : [{ id: 1, name: 'Admin', role: 'Owner', pin: '1234' }];
+    state.logs     = logs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 200);
+    state.settings = Object.keys(settings).length ? settings : { autoLogout: 30, pinRequired: false };
+    state.customExpenseCategories = cats.exp || [];
+    state.customIncomeCategories  = cats.inc || [];
   } catch(e) { console.warn('Load error', e); }
 }
 
@@ -215,7 +323,7 @@ function handleFileUpload(event) {
   reader.readAsDataURL(file);
 }
 
-function saveExpense(e) {
+async function saveExpense(e) {
   e.preventDefault();
   const exp = {
     id:          state.editingId || Date.now(),
@@ -241,6 +349,7 @@ function saveExpense(e) {
     showToast('Expense added!');
   }
 
+  await saveExpense_fs(exp);
   save();
   closeExpenseModal();
   renderExpenses();
@@ -252,6 +361,7 @@ function deleteExpense(id) {
   const exp = state.expenses.find(e => e.id === id);
   state.expenses = state.expenses.filter(e => e.id !== id);
   addLog('delete', `Deleted expense: ${exp?.category} ₹${fmt(exp?.amount)} (${exp?.date})`);
+  deleteExpense_fs(id);
   save();
   renderExpenses();
   if (document.getElementById('page-dashboard').classList.contains('active')) initDashboard();
@@ -692,7 +802,7 @@ function openUserModal() {
   document.getElementById('userModal').classList.add('open');
 }
 
-function addUser(e) {
+async function addUser(e) {
   e.preventDefault();
   const name = document.getElementById('userName').value.trim();
   const role = document.getElementById('userRole').value;
@@ -702,6 +812,7 @@ function addUser(e) {
   }
   const user = { id: Date.now(), name, role, pin };
   state.users.push(user);
+  await saveUser_fs(user);
   save();
   renderSettings();
   document.getElementById('userModal').classList.remove('open');
@@ -709,13 +820,14 @@ function addUser(e) {
   showToast(`User ${name} added!`);
 }
 
-function deleteUser(id) {
+async function deleteUser(id) {
   if (state.users.find(u => u.id === id)?.name === state.currentUser?.name) {
     showToast("Can't delete yourself", 'error'); return;
   }
   if (!confirm('Delete this user?')) return;
   const user = state.users.find(u => u.id === id);
   state.users = state.users.filter(u => u.id !== id);
+  await deleteUser_fs(id);
   save();
   renderSettings();
   addLog('delete', `Deleted user: ${user?.name}`);
@@ -744,6 +856,7 @@ function renderSettings() {
 function saveSettings() {
   state.settings.autoLogout   = parseInt(document.getElementById('autoLogout').value);
   state.settings.pinRequired  = document.getElementById('pinToggle').checked;
+  saveSettings_fs();
   save();
   showToast('Settings saved');
 }
@@ -772,7 +885,7 @@ function restoreData(event) {
   if (!file) return;
   if (!confirm('This will replace all data. Continue?')) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const backup = JSON.parse(e.target.result);
       if (!backup.expenses) throw new Error('Invalid backup file');
@@ -780,6 +893,13 @@ function restoreData(event) {
       state.users    = backup.users    || state.users;
       state.logs     = backup.logs     || [];
       state.settings = backup.settings || {};
+      // Push everything to Firestore
+      await Promise.all([
+        ...state.expenses.map(ex => fsSet('expenses', ex.id, ex)),
+        ...state.incomes.map(inc => fsSet('incomes', inc.id, inc)),
+        ...state.users.map(u => fsSet('users', u.id, u)),
+        fsSetSettings(state.settings),
+      ]);
       save();
       addLog('restore', `Data restored from backup (${backup.timestamp || 'unknown date'})`);
       showToast('Data restored successfully!');
@@ -795,13 +915,16 @@ function restoreData(event) {
 
 // ─── LOGS ────────────────────────────────────────────
 function addLog(type, message) {
-  state.logs.unshift({
+function addLog(type, message) {
+  const log = {
     type,
     message,
     user: state.currentUser?.name || 'System',
     time: new Date().toISOString(),
-  });
+  };
+  state.logs.unshift(log);
   if (state.logs.length > 200) state.logs = state.logs.slice(0, 200);
+  saveLog_fs(log);
   save();
 }
 
@@ -826,8 +949,15 @@ function renderLogs() {
   `).join('');
 }
 
-function clearLogs() {
+async function clearLogs() {
   if (!confirm('Clear all activity logs?')) return;
+  // Delete all log docs from Firestore
+  const snap = await getDocs(collection(db, 'logs')).catch(() => null);
+  if (snap) {
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
   state.logs = [];
   save();
   renderLogs();
@@ -952,7 +1082,7 @@ function calcIncomeTotal() {
   }
 }
 
-function saveIncome(e) {
+async function saveIncome(e) {
   e.preventDefault();
   const inc = {
     id:          state.editingIncomeId || Date.now(),
@@ -980,6 +1110,7 @@ function saveIncome(e) {
     showToast('Income added!');
   }
 
+  await saveIncome_fs(inc);
   save();
   closeIncomeModal();
   renderIncomes();
@@ -991,6 +1122,7 @@ function deleteIncome(id) {
   const inc = state.incomes.find(i => i.id === id);
   state.incomes = state.incomes.filter(i => i.id !== id);
   addLog('delete', `Deleted income: ${inc?.category} ₹${fmt(inc?.amount)} (${inc?.date})`);
+  deleteIncome_fs(id);
   save();
   renderIncomes();
   if (document.getElementById('page-dashboard').classList.contains('active')) initDashboard();
@@ -1103,6 +1235,7 @@ function addCustomExpCat() {
   if (getExpenseCategories().includes(val)) { showToast('Category already exists', 'error'); return; }
   state.customExpenseCategories.push(val);
   input.value = '';
+  saveSettings_fs();
   save();
   renderCustomCategories();
   showToast(`Expense category "${val}" added`);
@@ -1110,6 +1243,7 @@ function addCustomExpCat() {
 
 function removeCustomExpCat(idx) {
   state.customExpenseCategories.splice(idx, 1);
+  saveSettings_fs();
   save();
   renderCustomCategories();
 }
@@ -1121,6 +1255,7 @@ function addCustomIncCat() {
   if (getIncomeCategories().includes(val)) { showToast('Category already exists', 'error'); return; }
   state.customIncomeCategories.push(val);
   input.value = '';
+  saveSettings_fs();
   save();
   renderCustomCategories();
   showToast(`Income category "${val}" added`);
@@ -1128,6 +1263,7 @@ function addCustomIncCat() {
 
 function removeCustomIncCat(idx) {
   state.customIncomeCategories.splice(idx, 1);
+  saveSettings_fs();
   save();
   renderCustomCategories();
 }
@@ -1147,10 +1283,8 @@ function updateExpenseCategorySelects() {
 }
 
 // ─── INIT ─────────────────────────────────────────────
-(function init() {
-  load();
-
-  // Restore theme
+(async function init() {
+  // Restore theme from localStorage (UI preference only)
   const savedTheme = localStorage.getItem('qb_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
   const darkToggle = document.getElementById('darkToggle');
@@ -1158,6 +1292,9 @@ function updateExpenseCategorySelects() {
   if (savedTheme === 'light') {
     document.getElementById('themeIcon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
   }
+
+  // Load all data from Firestore
+  await load();
 
   // Set default date filters
   const fd = document.getElementById('filterFrom');
