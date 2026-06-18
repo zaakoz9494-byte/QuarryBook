@@ -8,8 +8,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, doc, setDoc, getDoc, deleteDoc,
-  collection, getDocs, onSnapshot, writeBatch
+  collection, getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCSuQFviR93T-VQgy6U7xLUlIAvXPOgxTY",
@@ -22,6 +25,7 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db    = getFirestore(fbApp);
+const auth  = getAuth(fbApp);
 
 // ─── FIRESTORE HELPERS ───────────────────────────────
 // Each collection stores documents with the record's id as the doc key.
@@ -169,31 +173,50 @@ async function load() {
   } catch(e) { console.warn('Load error', e); }
 }
 
-// ─── AUTH ─────────────────────────────────────────────
-function doLogin(e) {
+// ─── AUTH (Firebase Anonymous) ───────────────────────
+async function doLogin(e) {
   e.preventDefault();
-  const uname = document.getElementById('loginUser').value.trim();
-  const pin   = document.getElementById('loginPin').value.trim();
-  const user  = state.users.find(u => u.name.toLowerCase() === uname.toLowerCase() && u.pin === pin);
-  if (!user) { showToast('Invalid username or PIN', 'error'); return; }
-  state.currentUser = user;
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('sidebarUserName').textContent = user.name;
-  document.getElementById('userAvatarSidebar').textContent = user.name[0].toUpperCase();
-  addLog('login', `Logged in as ${user.name}`);
-  initDashboard();
-  showToast(`Welcome back, ${user.name}!`);
-  scheduleAutoLogout();
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  try {
+    await signInAnonymously(auth);
+    // onAuthStateChanged below handles the rest
+  } catch(err) {
+    console.error('Anonymous sign-in failed', err);
+    showToast('Sign-in failed: ' + err.message, 'error');
+    btn.textContent = 'Enter App';
+    btn.disabled = false;
+  }
 }
 
-function logout() {
+async function logout() {
   if (!confirm('Sign out?')) return;
-  addLog('logout', `Signed out`);
+  addLog('logout', 'Signed out');
   state.currentUser = null;
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPin').value = '';
+  await signOut(auth);
+  // onAuthStateChanged will show the login screen
 }
+
+// Listen for auth state – this is the single source of truth for login/logout
+onAuthStateChanged(auth, async (firebaseUser) => {
+  if (firebaseUser) {
+    // Signed in anonymously
+    state.currentUser = { id: firebaseUser.uid, name: 'Owner', role: 'Owner' };
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('sidebarUserName').textContent = 'Owner';
+    document.getElementById('userAvatarSidebar').textContent = 'O';
+    await load();
+    initDashboard();
+    showToast('Welcome to QuarryBook!');
+    scheduleAutoLogout();
+  } else {
+    // Signed out – show login screen
+    document.getElementById('loginScreen').style.display = 'flex';
+    const btn = document.getElementById('loginBtn');
+    if (btn) { btn.textContent = 'Enter App'; btn.disabled = false; }
+  }
+});
 
 let autoLogoutTimer = null;
 function scheduleAutoLogout() {
@@ -1293,9 +1316,6 @@ function updateExpenseCategorySelects() {
     document.getElementById('themeIcon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
   }
 
-  // Load all data from Firestore
-  await load();
-
   // Set default date filters
   const fd = document.getElementById('filterFrom');
   const td = document.getElementById('filterTo');
@@ -1305,9 +1325,9 @@ function updateExpenseCategorySelects() {
     td.value = today();
   }
 
-  // Show login
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('mainWrapper').style.display = 'flex';
+  // Login screen is visible by default in HTML.
+  // onAuthStateChanged (above) will hide it once Firebase confirms sign-in,
+  // or keep it visible if the user is signed out.
 })();
 
 // Add highlight style for search
