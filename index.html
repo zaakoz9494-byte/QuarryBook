@@ -180,8 +180,8 @@
           <div class="card-header">
             <h3>Monthly Trend</h3>
             <div class="chart-tabs">
-              <button class="chart-tab active" onclick="switchChartView('monthly')">Monthly</button>
-              <button class="chart-tab" onclick="switchChartView('weekly')">Weekly</button>
+              <button class="chart-tab active" onclick="switchChartView('monthly', this)">Monthly</button>
+              <button class="chart-tab" onclick="switchChartView('weekly', this)">Weekly</button>
             </div>
           </div>
           <canvas id="trendChart" height="200"></canvas>
@@ -696,6 +696,7 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<!-- ─── FIREBASE ─── -->
+<script type="module" src="app.js"></script>
 </body>
 </html>
