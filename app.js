@@ -1314,7 +1314,7 @@ function updateExpenseCategorySelects() {
 
 // Add highlight style for search
 const s = document.createElement('style');
-s.textContent = 'mark { background: rgba(74,222,128,0.25); color: var(--green); border-radius: 2px; padding: 0 2px; }';
+s.textContent = 'mark { background: rgba(74,222,128,0.25); color: var(--green); border-radius: 2px; padding: 0 2px; } .stat-sub-label { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }';
 document.head.appendChild(s);
 
 // ─── EXPOSE FUNCTIONS TO WINDOW (required for onclick= in ES module scope) ───
