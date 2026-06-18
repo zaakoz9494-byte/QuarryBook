@@ -76,7 +76,7 @@ async function fsGetCategories() {
 let state = {
   expenses: [],
   incomes: [],
-  users: [{ id: 1, name: 'Admin', role: 'Owner', pin: '1234' }],
+  users: [{ id: 1, name: 'ASHMIL AP', role: 'Owner', pin: '9494' }],
   logs: [],
   currentUser: null,
   settings: { autoLogout: 30, pinRequired: false },
