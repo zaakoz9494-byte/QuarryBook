@@ -1,6 +1,4 @@
 document.getElementById('billModal').classList.add('open');
-}
-
 function closeBillModal() {
   document.getElementById('billModal').classList.remove('open');
   document.getElementById('billViewerImg').src = '';
