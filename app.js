@@ -12,12 +12,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCSuQFviR93T-VQgy6U7xLUlIAvXPOgxTY",
-  authDomain: "quarry-book-noufal.firebaseapp.com",
-  projectId: "quarry-book-noufal",
-  storageBucket: "quarry-book-noufal.firebasestorage.app",
-  messagingSenderId: "895876955937",
-  appId: "1:895876955937:web:f3e895410003e4f8fa4860",
+  apiKey: "AIzaSyDWszVl7GivlfTLkeevl8lEK1YiO_GMaAE",
+  authDomain: "quarry-book-yasir-c058e.firebaseapp.com",
+  projectId: "quarry-book-yasir-c058e",
+  storageBucket: "quarry-book-yasir-c058e.firebasestorage.app",
+  messagingSenderId: "732130969655",
+  appId: "1:732130969655:web:fca0828205fcefe5bc17b2",
+  measurementId: "G-32FM86JYTC",
 };
 
 const fbApp = initializeApp(firebaseConfig);
