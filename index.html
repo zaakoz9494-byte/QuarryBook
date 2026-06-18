@@ -671,7 +671,15 @@
     <h1>QuarryBook</h1>
     <p class="login-sub">Stone Business Expense Manager</p>
     <form class="login-form" onsubmit="doLogin(event)">
-      <button type="submit" class="btn-primary full-width" id="loginBtn">Enter App</button>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Enter username" required />
+      </div>
+      <div class="form-group">
+        <label>PIN</label>
+        <input type="password" id="loginPin" placeholder="••••" maxlength="4" required />
+      </div>
+      <button type="submit" class="btn-primary full-width">Sign In</button>
     </form>
   </div>
 </div>
