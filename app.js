@@ -76,7 +76,7 @@ async function fsGetCategories() {
 let state = {
   expenses: [],
   incomes: [],
-  users: [{ id: 1, name: 'ASHMIL AP', role: 'Owner', pin: '9494' }],
+  users: [{ id: 1, name: 'Admin', role: 'Owner', pin: '1234' }],
   logs: [],
   currentUser: null,
   settings: { autoLogout: 30, pinRequired: false },
@@ -460,6 +460,7 @@ function initDashboard() {
   document.getElementById('statTotal').textContent  = '₹' + fmt(sum(state.expenses));
 
   document.getElementById('statIncToday').textContent  = '₹' + fmt(sum(todayInc));
+  document.getElementById('statIncWeek').textContent   = '₹' + fmt(sum(weekInc));
   document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
   document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
 
