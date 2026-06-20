@@ -387,6 +387,11 @@ function openExpenseModal(id = null) {
   document.getElementById('fileLabel').textContent = 'Click to upload bill';
   document.getElementById('fileDrop').classList.remove('has-file');
 
+  // Restrict date picker to current month
+  const expDateEl = document.getElementById('expDate');
+  expDateEl.min = monthStart();
+  expDateEl.max = monthEnd();
+
   // Populate categories dynamically
   const catSel = document.getElementById('expCategory');
   catSel.innerHTML = '<option value="">Select category</option>';
@@ -576,6 +581,7 @@ function initDashboard() {
   document.getElementById('statTotal').textContent  = '₹' + fmt(sum(state.expenses));
 
   document.getElementById('statIncToday').textContent  = '₹' + fmt(sum(todayInc));
+  document.getElementById('statIncWeek').textContent   = '₹' + fmt(sum(weekInc));
   document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
   document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
 
@@ -1105,6 +1111,14 @@ function showToast(msg, type = 'success') {
 // ─── UTILS ───────────────────────────────────────────
 function today() { return dateStr(new Date()); }
 function dateStr(d) { return d.toISOString().split('T')[0]; }
+function monthStart() {
+  const d = new Date();
+  return dateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+function monthEnd() {
+  const d = new Date();
+  return dateStr(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+}
 function fmt(n) {
   if (isNaN(n)) return '0';
   return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -1135,6 +1149,11 @@ function openIncomeModal(id = null) {
   document.getElementById('incFileLabel').textContent = 'Click to upload receipt';
   document.getElementById('incFileDrop').classList.remove('has-file');
   populateIncomeCategories();
+
+  // Restrict date picker to current month
+  const incDateEl = document.getElementById('incDate');
+  incDateEl.min = monthStart();
+  incDateEl.max = monthEnd();
 
   if (id) {
     const inc = state.incomes.find(i => i.id === id);
