@@ -198,10 +198,10 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .add-expense-btn svg { stroke: #000; width: 16px; height: 16px; }
 
 /* ─── CONTENT ─── */
-.content { flex: 1; padding: 24px; max-width: 1400px; width: 100%; }
+.content { flex: 1; padding: 24px; max-width: 1400px; width: 100%; min-width: 0; }
 
 /* ─── PAGES ─── */
-.page { display: none; }
+.page { display: none; min-width: 0; }
 .page.active { display: block; }
 
 /* ─── CARDS ─── */
@@ -273,10 +273,22 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   grid-template-columns: 2fr 1fr;
   gap: 16px;
   margin-bottom: 20px;
+  min-width: 0;
 }
-.chart-card { padding: 0; }
+.chart-card { padding: 0; min-width: 0; }
 .chart-card .card-header { padding: 16px 20px 12px; }
-.chart-card canvas { padding: 0 20px 20px; display: block; }
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  padding: 0 20px 20px;
+  box-sizing: border-box;
+}
+.chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
 .chart-tabs { display: flex; gap: 4px; }
 .chart-tab {
   padding: 4px 12px; border: 1px solid var(--border);
@@ -737,6 +749,11 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .page, .content {
     overflow-x: hidden;
     max-width: 100vw;
+  }
+
+  /* Safety net: nothing inside content should force page wider than viewport */
+  .content * {
+    max-width: 100%;
   }
 
   /* Chart container scrollable */
