@@ -8,7 +8,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, doc, setDoc, getDoc, deleteDoc,
-  collection, getDocs, onSnapshot, writeBatch
+  collection, getDocs, onSnapshot, writeBatch, query, collectionGroup
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -24,50 +24,85 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db    = getFirestore(fbApp);
 
-// ─── FIRESTORE HELPERS ───────────────────────────────
-// Each collection stores documents with the record's id as the doc key.
+// ─── ADMIN CONFIG ────────────────────────────────────
+const ADMIN_USERNAME = 'ASHMIL AP';
+const ADMIN_PIN      = '9494';
 
-async function fsSet(colName, id, data) {
-  try {
-    await setDoc(doc(db, colName, String(id)), data);
-  } catch(e) { console.error(`Firestore set [${colName}/${id}]`, e); }
+// ─── FIRESTORE HELPERS (user-scoped) ─────────────────
+// Data structure:
+//   users/{username}/expenses/{id}
+//   users/{username}/incomes/{id}
+//   users/{username}/meta/settings
+//   users/{username}/meta/categories
+//   users/{username}/meta/profile  → { pin, role, createdAt }
+
+function userCol(username, sub) {
+  return collection(db, 'users', username, sub);
+}
+function userDoc(username, sub, id) {
+  return doc(db, 'users', username, sub, String(id));
+}
+function userMetaDoc(username, key) {
+  return doc(db, 'users', username, 'meta', key);
 }
 
-async function fsDel(colName, id) {
-  try {
-    await deleteDoc(doc(db, colName, String(id)));
-  } catch(e) { console.error(`Firestore delete [${colName}/${id}]`, e); }
+async function fsSet(username, colName, id, data) {
+  try { await setDoc(userDoc(username, colName, id), data); }
+  catch(e) { console.error(`Firestore set [users/${username}/${colName}/${id}]`, e); }
 }
-
-async function fsGetAll(colName) {
+async function fsDel(username, colName, id) {
+  try { await deleteDoc(userDoc(username, colName, id)); }
+  catch(e) { console.error(`Firestore del [users/${username}/${colName}/${id}]`, e); }
+}
+async function fsGetAll(username, colName) {
   try {
-    const snap = await getDocs(collection(db, colName));
+    const snap = await getDocs(userCol(username, colName));
     return snap.docs.map(d => d.data());
-  } catch(e) { console.error(`Firestore getAll [${colName}]`, e); return []; }
+  } catch(e) { console.error(`Firestore getAll [users/${username}/${colName}]`, e); return []; }
 }
 
-// Single shared settings doc
-async function fsSetSettings(data) {
+// Profile helpers
+async function fsGetProfile(username) {
   try {
-    await setDoc(doc(db, 'meta', 'settings'), data);
-  } catch(e) { console.error('Firestore set settings', e); }
+    const snap = await getDoc(userMetaDoc(username, 'profile'));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) { return null; }
 }
-async function fsGetSettings() {
+async function fsSetProfile(username, data) {
+  try { await setDoc(userMetaDoc(username, 'profile'), data); }
+  catch(e) { console.error('Firestore set profile', e); }
+}
+
+// List all registered usernames
+async function fsGetAllUsers() {
   try {
-    const snap = await getDoc(doc(db, 'meta', 'settings'));
+    const snap = await getDocs(collection(db, 'users'));
+    const users = [];
+    for (const d of snap.docs) {
+      const profile = await fsGetProfile(d.id);
+      if (profile) users.push({ username: d.id, ...profile });
+    }
+    return users;
+  } catch(e) { return []; }
+}
+
+async function fsSetSettings(username, data) {
+  try { await setDoc(userMetaDoc(username, 'settings'), data); }
+  catch(e) { console.error('Firestore set settings', e); }
+}
+async function fsGetSettings(username) {
+  try {
+    const snap = await getDoc(userMetaDoc(username, 'settings'));
     return snap.exists() ? snap.data() : {};
   } catch(e) { return {}; }
 }
-
-// Single shared customCategories doc
-async function fsSetCategories(data) {
-  try {
-    await setDoc(doc(db, 'meta', 'categories'), data);
-  } catch(e) { console.error('Firestore set categories', e); }
+async function fsSetCategories(username, data) {
+  try { await setDoc(userMetaDoc(username, 'categories'), data); }
+  catch(e) {}
 }
-async function fsGetCategories() {
+async function fsGetCategories(username) {
   try {
-    const snap = await getDoc(doc(db, 'meta', 'categories'));
+    const snap = await getDoc(userMetaDoc(username, 'categories'));
     return snap.exists() ? snap.data() : { exp: [], inc: [] };
   } catch(e) { return { exp: [], inc: [] }; }
 }
@@ -76,9 +111,9 @@ async function fsGetCategories() {
 let state = {
   expenses: [],
   incomes: [],
-  users: [{ id: 1, name: 'Admin', role: 'Owner', pin: '1234' }],
+  allUsers: [],       // admin only: list of all registered users
   logs: [],
-  currentUser: null,
+  currentUser: null,  // { username, role }
   settings: { autoLogout: 30, pinRequired: false },
   editingId: null,
   editingIncomeId: null,
@@ -105,65 +140,75 @@ function getIncomeCategories() {
 // Keep alias for chart backward-compat
 function getCATEGORIES() { return getExpenseCategories(); }
 
-// ─── STORAGE (Firestore) ──────────────────────────────
-// save() is kept for theme/UI preferences only (non-sensitive, local)
+// ─── STORAGE (Firestore, user-scoped) ────────────────
 function save() {
-  try {
-    localStorage.setItem('qb_theme', document.documentElement.getAttribute('data-theme') || 'dark');
-  } catch(e) { console.warn('Storage error', e); }
+  try { localStorage.setItem('qb_theme', document.documentElement.getAttribute('data-theme') || 'dark'); }
+  catch(e) {}
 }
 
-// saveExpense – write one expense to Firestore
+function currentUsername() { return state.currentUser?.username || ''; }
+function isAdmin() { return state.currentUser?.role === 'admin'; }
+
 async function saveExpense_fs(exp) {
-  await fsSet('expenses', exp.id, exp);
+  await fsSet(currentUsername(), 'expenses', exp.id, exp);
 }
 async function deleteExpense_fs(id) {
-  await fsDel('expenses', id);
+  await fsDel(currentUsername(), 'expenses', id);
 }
-
-// saveIncome – write one income to Firestore
 async function saveIncome_fs(inc) {
-  await fsSet('incomes', inc.id, inc);
+  await fsSet(currentUsername(), 'incomes', inc.id, inc);
 }
 async function deleteIncome_fs(id) {
-  await fsDel('incomes', id);
+  await fsDel(currentUsername(), 'incomes', id);
 }
-
-// saveUser / deleteUser
-async function saveUser_fs(user) {
-  await fsSet('users', user.id, user);
-}
-async function deleteUser_fs(id) {
-  await fsDel('users', id);
-}
-
-// logs – write single log entry
 async function saveLog_fs(log) {
-  await fsSet('logs', log.time.replace(/[:.]/g, '-'), log);
+  await fsSet(currentUsername(), 'logs', log.time.replace(/[:.]/g, '-'), log);
 }
-
-// settings & categories
 async function saveSettings_fs() {
-  await fsSetSettings(state.settings);
-  await fsSetCategories({ exp: state.customExpenseCategories, inc: state.customIncomeCategories });
+  await fsSetSettings(currentUsername(), state.settings);
+  await fsSetCategories(currentUsername(), { exp: state.customExpenseCategories, inc: state.customIncomeCategories });
 }
 
-async function load() {
+// Load data for a specific user (or all users if admin)
+async function load(username) {
   try {
     showToast('Loading data…', 'success');
-    const [expenses, incomes, users, logs, settings, cats] = await Promise.all([
-      fsGetAll('expenses'),
-      fsGetAll('incomes'),
-      fsGetAll('users'),
-      fsGetAll('logs'),
-      fsGetSettings(),
-      fsGetCategories(),
+    if (isAdmin()) {
+      // Admin: load ALL users' expenses and incomes
+      const allUsersList = await fsGetAllUsers();
+      state.allUsers = allUsersList;
+      let allExpenses = [], allIncomes = [], allLogs = [];
+      for (const u of allUsersList) {
+        const [exps, incs, logs] = await Promise.all([
+          fsGetAll(u.username, 'expenses'),
+          fsGetAll(u.username, 'incomes'),
+          fsGetAll(u.username, 'logs'),
+        ]);
+        // Tag each entry with owner username
+        exps.forEach(e => e._owner = u.username);
+        incs.forEach(i => i._owner = u.username);
+        allExpenses.push(...exps);
+        allIncomes.push(...incs);
+        allLogs.push(...logs);
+      }
+      state.expenses = allExpenses.sort((a,b) => b.id - a.id);
+      state.incomes  = allIncomes.sort((a,b)  => b.id - a.id);
+      state.logs     = allLogs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 500);
+    } else {
+      // Regular user: load only their data
+      const [expenses, incomes, logs] = await Promise.all([
+        fsGetAll(username, 'expenses'),
+        fsGetAll(username, 'incomes'),
+        fsGetAll(username, 'logs'),
+      ]);
+      state.expenses = expenses.sort((a,b) => b.id - a.id);
+      state.incomes  = incomes.sort((a,b)  => b.id - a.id);
+      state.logs     = logs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 200);
+    }
+    const [settings, cats] = await Promise.all([
+      fsGetSettings(username),
+      fsGetCategories(username),
     ]);
-
-    state.expenses = expenses.sort((a,b) => b.id - a.id);
-    state.incomes  = incomes.sort((a,b)  => b.id - a.id);
-    state.users    = users.length ? users : [{ id: 1, name: 'Admin', role: 'Owner', pin: '1234' }];
-    state.logs     = logs.sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 200);
     state.settings = Object.keys(settings).length ? settings : { autoLogout: 30, pinRequired: false };
     state.customExpenseCategories = cats.exp || [];
     state.customIncomeCategories  = cats.inc || [];
@@ -171,21 +216,75 @@ async function load() {
 }
 
 // ─── AUTH ─────────────────────────────────────────────
-function doLogin(e) {
+async function doLogin(e) {
   e.preventDefault();
   const uname = document.getElementById('loginUser').value.trim();
   const pin   = document.getElementById('loginPin').value.trim();
-  const user  = state.users.find(u => u.name.toLowerCase() === uname.toLowerCase() && u.pin === pin);
-  if (!user) { showToast('Invalid username or PIN', 'error'); return; }
-  state.currentUser = user;
+
+  if (!uname || !pin) { showToast('Enter username and PIN', 'error'); return; }
+
+  // Admin check (hardcoded)
+  if (uname.toUpperCase() === ADMIN_USERNAME.toUpperCase()) {
+    if (pin !== ADMIN_PIN) { showToast('Invalid PIN', 'error'); return; }
+    state.currentUser = { username: ADMIN_USERNAME, role: 'admin' };
+    await load(ADMIN_USERNAME);
+    onLoginSuccess();
+    return;
+  }
+
+  // Regular user — look up in Firestore
+  const profile = await fsGetProfile(uname);
+  if (!profile) { showToast('User not found. Please register.', 'error'); return; }
+  if (profile.pin !== pin) { showToast('Invalid PIN', 'error'); return; }
+
+  state.currentUser = { username: uname, role: 'user' };
+  await load(uname);
+  onLoginSuccess();
+}
+
+async function doRegister() {
+  const uname = document.getElementById('regUser').value.trim();
+  const pin   = document.getElementById('regPin').value.trim();
+  const pin2  = document.getElementById('regPin2').value.trim();
+
+  if (!uname || !pin) { showToast('Enter username and PIN', 'error'); return; }
+  if (pin.length < 4 || pin.length > 6) { showToast('PIN must be 4–6 digits', 'error'); return; }
+  if (!/^\d+$/.test(pin)) { showToast('PIN must be digits only', 'error'); return; }
+  if (pin !== pin2) { showToast('PINs do not match', 'error'); return; }
+  if (uname.toUpperCase() === ADMIN_USERNAME.toUpperCase()) { showToast('Username not allowed', 'error'); return; }
+
+  const existing = await fsGetProfile(uname);
+  if (existing) { showToast('Username already taken', 'error'); return; }
+
+  await fsSetProfile(uname, { pin, role: 'user', createdAt: new Date().toISOString() });
+  showToast(`Account created! You can now log in.`, 'success');
+  showLoginForm();
+  document.getElementById('loginUser').value = uname;
+}
+
+function onLoginSuccess() {
+  const u = state.currentUser;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainWrapper').style.display = 'flex';
-  document.getElementById('sidebarUserName').textContent = user.name;
-  document.getElementById('userAvatarSidebar').textContent = user.name[0].toUpperCase();
-  addLog('login', `Logged in as ${user.name}`);
+  document.getElementById('sidebarUserName').textContent = u.username;
+  document.getElementById('userAvatarSidebar').textContent = u.username[0].toUpperCase();
+  // Show/hide admin-only nav items
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin() ? '' : 'none';
+  });
+  addLog('login', `Logged in as ${u.username}`);
   initDashboard();
-  showToast(`Welcome back, ${user.name}!`);
+  showToast(`Welcome, ${u.username}!`);
   scheduleAutoLogout();
+}
+
+function showLoginForm() {
+  document.getElementById('loginFormWrap').style.display = '';
+  document.getElementById('registerFormWrap').style.display = 'none';
+}
+function showRegisterForm() {
+  document.getElementById('loginFormWrap').style.display = 'none';
+  document.getElementById('registerFormWrap').style.display = '';
 }
 
 function logout() {
@@ -193,9 +292,12 @@ function logout() {
   clearTimeout(autoLogoutTimer);
   addLog('logout', `Signed out`);
   state.currentUser = null;
+  state.expenses = []; state.incomes = []; state.logs = [];
   document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainWrapper').style.display = 'none';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPin').value = '';
+  showLoginForm();
 }
 
 let autoLogoutTimer = null;
@@ -460,7 +562,6 @@ function initDashboard() {
   document.getElementById('statTotal').textContent  = '₹' + fmt(sum(state.expenses));
 
   document.getElementById('statIncToday').textContent  = '₹' + fmt(sum(todayInc));
-  document.getElementById('statIncWeek').textContent   = '₹' + fmt(sum(weekInc));
   document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
   document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
 
@@ -1287,7 +1388,6 @@ function updateExpenseCategorySelects() {
 
 // ─── INIT ─────────────────────────────────────────────
 (async function init() {
-  // Restore theme from localStorage (UI preference only)
   const savedTheme = localStorage.getItem('qb_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
   const darkToggle = document.getElementById('darkToggle');
@@ -1296,10 +1396,6 @@ function updateExpenseCategorySelects() {
     document.getElementById('themeIcon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
   }
 
-  // Load all data from Firestore
-  await load();
-
-  // Set default date filters
   const fd = document.getElementById('filterFrom');
   const td = document.getElementById('filterTo');
   if (fd && td) {
@@ -1308,14 +1404,15 @@ function updateExpenseCategorySelects() {
     td.value = today();
   }
 
-  // Show login (mainWrapper stays hidden until login succeeds)
+  // Show login screen — data loads after successful login
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainWrapper').style.display = 'none';
+  showLoginForm();
 })();
 
 // Add highlight style for search
 const s = document.createElement('style');
-s.textContent = 'mark { background: rgba(74,222,128,0.25); color: var(--green); border-radius: 2px; padding: 0 2px; } .stat-sub-label { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; }';
+s.textContent = 'mark { background: rgba(74,222,128,0.25); color: var(--green); border-radius: 2px; padding: 0 2px; } .stat-sub-label { font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px; } .stat-card { min-height: unset !important; height: auto !important; padding-bottom: 18px !important; } .stat-trend { display: none !important; }';
 document.head.appendChild(s);
 
 // ─── EXPOSE FUNCTIONS TO WINDOW (required for onclick= in ES module scope) ───
@@ -1330,7 +1427,7 @@ Object.assign(window, {
   openUserModal, addUser, deleteUser,
   saveSettings, backupData, restoreData,
   clearLogs,
-  showNotifications, logout, doLogin,
+  showNotifications, logout, doLogin, doRegister, showLoginForm, showRegisterForm,
   openIncomeModal, closeIncomeModal, handleIncFileUpload, calcIncomeTotal, saveIncome, deleteIncome,
   clearIncomeFilters, renderIncomes,
   addCustomExpCat, removeCustomExpCat, addCustomIncCat, removeCustomIncCat,
