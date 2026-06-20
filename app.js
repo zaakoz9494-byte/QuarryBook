@@ -69,7 +69,11 @@ async function fsGetProfile(username) {
   } catch(e) { return null; }
 }
 async function fsSetProfile(username, data) {
-  try { await setDoc(userMetaDoc(username, 'profile'), data); }
+  try {
+    // Create the parent user document AND the profile meta doc
+    await setDoc(doc(db, 'users', username), { username, createdAt: data.createdAt });
+    await setDoc(userMetaDoc(username, 'profile'), data);
+  }
   catch(e) { console.error('Firestore set profile', e); }
 }
 
@@ -226,6 +230,13 @@ async function doLogin(e) {
   // Admin check (hardcoded)
   if (uname.toUpperCase() === ADMIN_USERNAME.toUpperCase()) {
     if (pin !== ADMIN_PIN) { showToast('Invalid PIN', 'error'); return; }
+    // Ensure admin user doc exists in Firestore
+    const adminDoc = doc(db, 'users', ADMIN_USERNAME);
+    const adminSnap = await getDoc(adminDoc);
+    if (!adminSnap.exists()) {
+      await setDoc(adminDoc, { username: ADMIN_USERNAME, createdAt: new Date().toISOString() });
+      await setDoc(userMetaDoc(ADMIN_USERNAME, 'profile'), { pin: ADMIN_PIN, role: 'admin', createdAt: new Date().toISOString() });
+    }
     state.currentUser = { username: ADMIN_USERNAME, role: 'admin' };
     await load(ADMIN_USERNAME);
     onLoginSuccess();
