@@ -340,6 +340,9 @@ function navigateTo(page) {
   document.getElementById(`page-${page}`).classList.add('active');
   document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
   document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
+  // Sync mobile bottom nav
+  document.querySelectorAll('.mobile-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.mobile-nav [data-mob-page="${page}"]`)?.classList.add('active');
   if (window.innerWidth <= 768) closeSidebar();
   if (page === 'dashboard')  initDashboard();
   if (page === 'expenses')   renderExpenses();
