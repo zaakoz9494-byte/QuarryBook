@@ -144,6 +144,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
   transition: margin-left var(--transition);
 }
 
@@ -686,7 +687,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
     transform: translateX(0);
     box-shadow: 0 0 0 100vw rgba(0,0,0,0.5);
   }
-  .main-wrapper { margin-left: 0; }
+  .main-wrapper { margin-left: 0; width: 100%; min-width: 0; }
   .hamburger { display: flex; }
   .topbar { padding: 0 16px; }
   .content { padding: 16px; }
