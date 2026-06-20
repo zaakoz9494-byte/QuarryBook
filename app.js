@@ -562,6 +562,7 @@ function toggleSelectAll() {
 
 // ─── DASHBOARD ───────────────────────────────────────
 function initDashboard() {
+  try {
   const now = new Date();
   const todayStr = today();
   const weekAgo  = dateStr(new Date(now - 7  * 86400000));
@@ -627,6 +628,14 @@ function initDashboard() {
   }
 
   initCharts();
+  } catch (err) {
+    var b = document.getElementById('debugBanner');
+    if (b) {
+      b.style.display = 'block';
+      b.textContent += '[initDashboard ERROR] ' + err.message + '\n' + err.stack + '\n';
+    }
+    console.error('initDashboard failed:', err);
+  }
 }
 
 // ─── CHARTS ──────────────────────────────────────────
@@ -1460,8 +1469,4 @@ Object.assign(window, {
   openUserModal, addUser, deleteUser,
   saveSettings, backupData, restoreData,
   clearLogs,
-  showNotifications, logout, doLogin, doRegister, showLoginForm, showRegisterForm,
-  openIncomeModal, closeIncomeModal, handleIncFileUpload, calcIncomeTotal, saveIncome, deleteIncome,
-  clearIncomeFilters, renderIncomes,
-  addCustomExpCat, removeCustomExpCat, addCustomIncCat, removeCustomIncCat,
-});
+  showNotifications, logout, 
