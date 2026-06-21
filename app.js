@@ -286,7 +286,13 @@ function onLoginSuccess() {
   });
   addLog('login', `Logged in as ${u.username}`);
   showToast(`Welcome, ${u.username}!`);
-  setTimeout(() => initDashboard(), 0); // defer so DOM is painted first
+  // Defer dashboard render: wait for browser to paint the newly-visible mainWrapper
+  // before calling initDashboard (canvas/layout needs to be visible first).
+  // A second call after 300ms acts as a safety net for slow Firestore responses.
+  requestAnimationFrame(() => {
+    initDashboard();
+    setTimeout(() => initDashboard(), 300);
+  });
   scheduleAutoLogout();
 }
 
