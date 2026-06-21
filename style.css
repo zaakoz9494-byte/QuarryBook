@@ -273,6 +273,18 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .stat-trend.up { color: var(--green); }
 .stat-trend.down { color: var(--danger); }
 
+/* ── Income & Net stat card variants (were missing — caused missing cards on login) ── */
+.stat-card.income-card { border-color: rgba(96,165,250,0.2); }
+.stat-card.income-card::before { background: var(--blue); }
+.stat-card.income-card:hover { border-color: rgba(96,165,250,0.4); }
+.stat-card.income-card:hover::before { background: var(--blue); }
+.stat-icon.income-icon { color: var(--blue); }
+.stat-value.income-value { color: var(--blue); }
+.stat-card.net-card { border-color: rgba(251,191,36,0.2); }
+.stat-card.net-card::before { background: var(--warning); }
+.stat-card.net-card:hover { border-color: rgba(251,191,36,0.4); }
+.stat-icon.net-icon { color: var(--warning); }
+
 /* ─── CHARTS ─── */
 .charts-row {
   display: grid;
