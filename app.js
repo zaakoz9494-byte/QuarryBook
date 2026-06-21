@@ -115,6 +115,7 @@ async function fsGetCategories(username) {
 let state = {
   expenses: [],
   incomes: [],
+  users: [],          // local users list (settings panel)
   allUsers: [],       // admin only: list of all registered users
   logs: [],
   currentUser: null,  // { username, role }
@@ -284,8 +285,8 @@ function onLoginSuccess() {
     el.style.display = isAdmin() ? '' : 'none';
   });
   addLog('login', `Logged in as ${u.username}`);
-  initDashboard();
   showToast(`Welcome, ${u.username}!`);
+  setTimeout(() => initDashboard(), 0); // defer so DOM is painted first
   scheduleAutoLogout();
 }
 
@@ -458,7 +459,7 @@ async function saveExpense(e) {
     vendor:      document.getElementById('expVendor').value.trim(),
     description: document.getElementById('expDesc').value.trim(),
     bill:        state.billData,
-    createdBy:   state.currentUser?.name || 'Admin',
+    createdBy:   state.currentUser?.username || state.currentUser?.name || 'Admin',
     createdAt:   new Date().toISOString(),
   };
 
@@ -941,12 +942,12 @@ async function addUser(e) {
   const name = document.getElementById('userName').value.trim();
   const role = document.getElementById('userRole').value;
   const pin  = document.getElementById('userPin').value;
-  if (state.users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+  if (state.users.find(u => (u.name || u.username || '').toLowerCase() === name.toLowerCase())) {
     showToast('Username already exists', 'error'); return;
   }
   const user = { id: Date.now(), name, role, pin };
   state.users.push(user);
-  await saveUser_fs(user);
+  await fsSetProfile(user.name, { pin: user.pin, role: user.role, createdAt: new Date().toISOString() });
   save();
   renderSettings();
   document.getElementById('userModal').classList.remove('open');
@@ -961,7 +962,7 @@ async function deleteUser(id) {
   if (!confirm('Delete this user?')) return;
   const user = state.users.find(u => u.id === id);
   state.users = state.users.filter(u => u.id !== id);
-  await deleteUser_fs(id);
+  // Note: deletes local entry only; Firestore user doc retained to preserve data
   save();
   renderSettings();
   addLog('delete', `Deleted user: ${user?.name}`);
@@ -971,7 +972,7 @@ async function deleteUser(id) {
 // ─── SETTINGS RENDER ─────────────────────────────────
 function renderSettings() {
   const list = document.getElementById('usersList');
-  list.innerHTML = state.users.map(u => `
+  list.innerHTML = (state.users || []).map(u => `
     <div class="user-list-item">
       <div class="ul-avatar">${u.name[0].toUpperCase()}</div>
       <div class="ul-info">
@@ -1001,7 +1002,7 @@ function backupData() {
     version: 1,
     timestamp: new Date().toISOString(),
     expenses: state.expenses,
-    users: state.users,
+    incomes: state.incomes,
     logs: state.logs,
     settings: state.settings,
   };
@@ -1029,10 +1030,9 @@ function restoreData(event) {
       state.settings = backup.settings || {};
       // Push everything to Firestore
       await Promise.all([
-        ...state.expenses.map(ex => fsSet('expenses', ex.id, ex)),
-        ...state.incomes.map(inc => fsSet('incomes', inc.id, inc)),
-        ...state.users.map(u => fsSet('users', u.id, u)),
-        fsSetSettings(state.settings),
+        ...state.expenses.map(ex => fsSet(currentUsername(), 'expenses', ex.id, ex)),
+        ...state.incomes.map(inc => fsSet(currentUsername(), 'incomes', inc.id, inc)),
+        fsSetSettings(currentUsername(), state.settings),
       ]);
       save();
       addLog('restore', `Data restored from backup (${backup.timestamp || 'unknown date'})`);
@@ -1052,7 +1052,7 @@ function addLog(type, message) {
   const log = {
     type,
     message,
-    user: state.currentUser?.name || 'System',
+    user: state.currentUser?.username || state.currentUser?.name || 'System',
     time: new Date().toISOString(),
   };
   state.logs.unshift(log);
@@ -1085,7 +1085,7 @@ function renderLogs() {
 async function clearLogs() {
   if (!confirm('Clear all activity logs?')) return;
   // Delete all log docs from Firestore
-  const snap = await getDocs(collection(db, 'logs')).catch(() => null);
+  const snap = await getDocs(userCol(currentUsername(), 'logs')).catch(() => null);
   if (snap) {
     const batch = writeBatch(db);
     snap.docs.forEach(d => batch.delete(d.ref));
@@ -1241,7 +1241,7 @@ async function saveIncome(e) {
     quantity:    parseFloat(document.getElementById('incQuantity').value) || null,
     ratePerUnit: parseFloat(document.getElementById('incRatePerUnit').value) || null,
     bill:        state.incomeBillData,
-    createdBy:   state.currentUser?.name || 'Admin',
+    createdBy:   state.currentUser?.username || state.currentUser?.name || 'Admin',
     createdAt:   new Date().toISOString(),
   };
 
@@ -1469,4 +1469,9 @@ Object.assign(window, {
   openUserModal, addUser, deleteUser,
   saveSettings, backupData, restoreData,
   clearLogs,
-  showNotifications, logout, 
+  showNotifications, logout,
+  openIncomeModal, closeIncomeModal, saveIncome, deleteIncome,
+  handleIncFileUpload, calcIncomeTotal,
+  addCustomExpCat, addCustomIncCat, removeCustomExpCat, removeCustomIncCat,
+  clearIncomeFilters, showRegisterForm, showLoginForm, doLogin, doRegister,
+});
