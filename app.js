@@ -593,6 +593,13 @@ function initDashboard() {
   document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
   document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
 
+  const netWeek  = sum(weekInc)  - sum(weekExp);
+  const netWeekEl = document.getElementById('statNetWeek');
+  if (netWeekEl) {
+    netWeekEl.textContent = (netWeek >= 0 ? '+' : '') + '₹' + fmt(netWeek);
+    netWeekEl.style.color = netWeek >= 0 ? 'var(--green)' : '#f87171';
+  }
+
   const netMonth = sum(monthInc) - sum(monthExp);
   const netEl = document.getElementById('statNetMonth');
   netEl.textContent = (netMonth >= 0 ? '+' : '') + '₹' + fmt(netMonth);
@@ -1475,9 +1482,141 @@ Object.assign(window, {
   openUserModal, addUser, deleteUser,
   saveSettings, backupData, restoreData,
   clearLogs,
-  showNotifications, logout,
+  showNotifications, logout, downloadWeeklyReport,
   openIncomeModal, closeIncomeModal, saveIncome, deleteIncome,
   handleIncFileUpload, calcIncomeTotal,
   addCustomExpCat, addCustomIncCat, removeCustomExpCat, removeCustomIncCat,
   clearIncomeFilters, showRegisterForm, showLoginForm, doLogin, doRegister,
 });
+
+// ─── WEEKLY PROFIT REPORT PDF ─────────────────────────
+function downloadWeeklyReport() {
+  const { jsPDF } = window.jspdf;
+
+  // Calculate this week Monday–Sunday
+  const now    = new Date();
+  const day    = now.getDay();
+  const diff   = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(now); monday.setDate(now.getDate() + diff); monday.setHours(0,0,0,0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+
+  const weekStart = dateStr(monday);
+  const weekEnd   = dateStr(sunday);
+  const label     = `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+
+  const weekExp = state.expenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
+  const weekInc = (state.incomes || []).filter(i => i.date >= weekStart && i.date <= weekEnd);
+
+  const totalExp = sum(weekExp);
+  const totalInc = sum(weekInc);
+  const profit   = totalInc - totalExp;
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210;
+
+  // Header
+  doc.setFillColor(10, 15, 10);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setTextColor(74, 222, 128);
+  doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+  doc.text('QuarryBook', 14, 16);
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 220, 180);
+  doc.text('Weekly Profit Report', 14, 24);
+  doc.text(label, 14, 31);
+  doc.setTextColor(120, 160, 120);
+  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 14, 36.5);
+
+  // Summary boxes
+  const boxY = 44; const boxH = 22; const gap = 4;
+  const bw = (W - 28 - gap * 2) / 3;
+
+  doc.setFillColor(40, 15, 15);
+  doc.roundedRect(14, boxY, bw, boxH, 3, 3, 'F');
+  doc.setTextColor(248, 113, 113);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('TOTAL EXPENSES', 14 + bw/2, boxY + 7, { align: 'center' });
+  doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text(`\u20B9${fmt(totalExp)}`, 14 + bw/2, boxY + 16, { align: 'center' });
+
+  doc.setFillColor(15, 35, 15);
+  doc.roundedRect(14 + bw + gap, boxY, bw, boxH, 3, 3, 'F');
+  doc.setTextColor(74, 222, 128);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('TOTAL INCOME', 14 + bw + gap + bw/2, boxY + 7, { align: 'center' });
+  doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text(`\u20B9${fmt(totalInc)}`, 14 + bw + gap + bw/2, boxY + 16, { align: 'center' });
+
+  const pColor = profit >= 0 ? [74, 222, 128] : [248, 113, 113];
+  doc.setFillColor(profit >= 0 ? 15 : 40, profit >= 0 ? 40 : 15, 15);
+  doc.roundedRect(14 + (bw + gap) * 2, boxY, bw, boxH, 3, 3, 'F');
+  doc.setTextColor(...pColor);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('WEEKLY PROFIT', 14 + (bw + gap) * 2 + bw/2, boxY + 7, { align: 'center' });
+  doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text(`\u20B9${fmt(profit)}`, 14 + (bw + gap) * 2 + bw/2, boxY + 16, { align: 'center' });
+
+  let curY = boxY + boxH + 8;
+
+  // Expenses table
+  doc.setTextColor(248, 113, 113);
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.text('Expenses', 14, curY); curY += 4;
+
+  if (weekExp.length) {
+    doc.autoTable({
+      startY: curY,
+      head: [['Date','Category','Description','Vendor','Method','Amount (\u20B9)']],
+      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'—', e.vendor||'—', e.method, `\u20B9${fmt(e.amount)}`]),
+      foot: [['','','','','Total', `\u20B9${fmt(totalExp)}`]],
+      styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
+      headStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
+      footStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [20,22,20] },
+      margin: { left: 14, right: 14 },
+    });
+    curY = doc.lastAutoTable.finalY + 8;
+  } else {
+    doc.setFontSize(8); doc.setTextColor(120,140,120);
+    doc.text('No expenses this week.', 14, curY + 4); curY += 12;
+  }
+
+  // Income table
+  doc.setTextColor(74, 222, 128);
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.text('Income', 14, curY); curY += 4;
+
+  if (weekInc.length) {
+    doc.autoTable({
+      startY: curY,
+      head: [['Date','Category','Description','Method','Amount (\u20B9)']],
+      body: weekInc.map(i => [formatDate(i.date), i.category||'—', i.description||'—', i.method||'—', `\u20B9${fmt(i.amount)}`]),
+      foot: [['','','','Total', `\u20B9${fmt(totalInc)}`]],
+      styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
+      headStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
+      footStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [20,22,20] },
+      margin: { left: 14, right: 14 },
+    });
+    curY = doc.lastAutoTable.finalY + 8;
+  } else {
+    doc.setFontSize(8); doc.setTextColor(120,140,120);
+    doc.text('No income this week.', 14, curY + 4); curY += 12;
+  }
+
+  // Profit footer
+  doc.setDrawColor(74, 222, 128);
+  doc.setLineWidth(0.4);
+  doc.line(14, curY, W - 14, curY); curY += 6;
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...pColor);
+  doc.text(`Weekly Profit: \u20B9${fmt(profit)}`, W - 14, curY, { align: 'right' });
+
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80,100,80);
+  doc.text('QuarryBook \u00B7 Stone Business Manager', W / 2, 290, { align: 'center' });
+
+  doc.save(`QuarryBook_Weekly_${weekStart}.pdf`);
+  addLog('export', `Downloaded weekly report: ${label}`);
+  showToast('Weekly report downloaded!');
+}
