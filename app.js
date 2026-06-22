@@ -1493,7 +1493,7 @@ Object.assign(window, {
 function downloadWeeklyReport() {
   const { jsPDF } = window.jspdf;
 
-  // Calculate this week Monday–Sunday
+  // Calculate this week Monday-Sunday
   const now    = new Date();
   const day    = now.getDay();
   const diff   = (day === 0 ? -6 : 1 - day);
@@ -1502,7 +1502,8 @@ function downloadWeeklyReport() {
 
   const weekStart = dateStr(monday);
   const weekEnd   = dateStr(sunday);
-  const label     = `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+  // FIX: use plain hyphen instead of en-dash to avoid encoding issues
+  const label = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
 
   const weekExp = state.expenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
   const weekInc = (state.incomes || []).filter(i => i.date >= weekStart && i.date <= weekEnd);
@@ -1513,6 +1514,15 @@ function downloadWeeklyReport() {
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210;
+  const PAGE_H = 297;
+
+  // FIX 4: page border
+  function drawPageBorder() {
+    doc.setDrawColor(74, 222, 128);
+    doc.setLineWidth(0.6);
+    doc.rect(5, 5, W - 10, PAGE_H - 10);
+  }
+  drawPageBorder();
 
   // Header
   doc.setFillColor(10, 15, 10);
@@ -1525,19 +1535,20 @@ function downloadWeeklyReport() {
   doc.text('Weekly Profit Report', 14, 24);
   doc.text(label, 14, 31);
   doc.setTextColor(120, 160, 120);
-  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 14, 36.5);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 36.5);
 
   // Summary boxes
   const boxY = 44; const boxH = 22; const gap = 4;
   const bw = (W - 28 - gap * 2) / 3;
 
+  // FIX 1: plain numbers only — no currency symbol prefix on values
   doc.setFillColor(40, 15, 15);
   doc.roundedRect(14, boxY, bw, boxH, 3, 3, 'F');
   doc.setTextColor(248, 113, 113);
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('TOTAL EXPENSES', 14 + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`Rs.${fmt(totalExp)}`, 14 + bw/2, boxY + 16, { align: 'center' });
+  doc.text(fmt(totalExp), 14 + bw/2, boxY + 16, { align: 'center' });
 
   doc.setFillColor(15, 35, 15);
   doc.roundedRect(14 + bw + gap, boxY, bw, boxH, 3, 3, 'F');
@@ -1545,7 +1556,7 @@ function downloadWeeklyReport() {
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('TOTAL INCOME', 14 + bw + gap + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`Rs.${fmt(totalInc)}`, 14 + bw + gap + bw/2, boxY + 16, { align: 'center' });
+  doc.text(fmt(totalInc), 14 + bw + gap + bw/2, boxY + 16, { align: 'center' });
 
   const pColor = profit >= 0 ? [74, 222, 128] : [248, 113, 113];
   doc.setFillColor(profit >= 0 ? 15 : 40, profit >= 0 ? 40 : 15, 15);
@@ -1554,67 +1565,81 @@ function downloadWeeklyReport() {
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('WEEKLY PROFIT', 14 + (bw + gap) * 2 + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`Rs.${fmt(profit)}`, 14 + (bw + gap) * 2 + bw/2, boxY + 16, { align: 'center' });
+  doc.text(fmt(profit), 14 + (bw + gap) * 2 + bw/2, boxY + 16, { align: 'center' });
 
   let curY = boxY + boxH + 8;
 
   // Expenses table
-  doc.setTextColor(248, 113, 113);
+  doc.setTextColor(200, 60, 60);
   doc.setFontSize(10); doc.setFont('helvetica', 'bold');
   doc.text('Expenses', 14, curY); curY += 4;
 
   if (weekExp.length) {
     doc.autoTable({
       startY: curY,
-      head: [['Date','Category','Description','Vendor','Method','Amount (Rs.)']],
-      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'—', e.vendor||'—', e.method, `Rs.${fmt(e.amount)}`]),
-      foot: [['','','','','Total', `Rs.${fmt(totalExp)}`]],
-      styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
-      headStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
-      footStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [20,22,20] },
+      head: [['Date', 'Category', 'Description', 'Vendor', 'Method', 'Amount (Rs.)']],
+      // FIX 1: plain number values, no currency prefix
+      body: weekExp.map(e => [formatDate(e.date), e.category, e.description || '-', e.vendor || '-', e.method, fmt(e.amount)]),
+      foot: [['', '', '', '', 'Total', fmt(totalExp)]],
+      // FIX 2: light background + dark text so ALL rows are equally visible
+      styles:           { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 30], fillColor: [255, 255, 255] },
+      headStyles:       { fillColor: [180, 40, 40],  textColor: [255, 255, 255], fontStyle: 'bold' },
+      footStyles:       { fillColor: [180, 40, 40],  textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [255, 235, 235] },
       margin: { left: 14, right: 14 },
     });
     curY = doc.lastAutoTable.finalY + 8;
   } else {
-    doc.setFontSize(8); doc.setTextColor(120,140,120);
+    doc.setFontSize(8); doc.setTextColor(100, 100, 100);
     doc.text('No expenses this week.', 14, curY + 4); curY += 12;
   }
 
   // Income table
-  doc.setTextColor(74, 222, 128);
+  doc.setTextColor(30, 120, 60);
   doc.setFontSize(10); doc.setFont('helvetica', 'bold');
   doc.text('Income', 14, curY); curY += 4;
 
   if (weekInc.length) {
     doc.autoTable({
       startY: curY,
-      head: [['Date','Category','Description','Method','Amount (Rs.)']],
-      body: weekInc.map(i => [formatDate(i.date), i.category||'—', i.description||'—', i.method||'—', `Rs.${fmt(i.amount)}`]),
-      foot: [['','','','Total', `Rs.${fmt(totalInc)}`]],
-      styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
-      headStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
-      footStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [20,22,20] },
+      head: [['Date', 'Category', 'Description', 'Method', 'Amount (Rs.)']],
+      // FIX 1: plain number values, no currency prefix
+      body: weekInc.map(i => [formatDate(i.date), i.category || '-', i.description || '-', i.method || '-', fmt(i.amount)]),
+      foot: [['', '', '', 'Total', fmt(totalInc)]],
+      // FIX 2: light background + dark text so ALL rows are equally visible
+      styles:           { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 30], fillColor: [255, 255, 255] },
+      headStyles:       { fillColor: [20, 120, 60],  textColor: [255, 255, 255], fontStyle: 'bold' },
+      footStyles:       { fillColor: [20, 120, 60],  textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [235, 255, 240] },
       margin: { left: 14, right: 14 },
     });
     curY = doc.lastAutoTable.finalY + 8;
   } else {
-    doc.setFontSize(8); doc.setTextColor(120,140,120);
+    doc.setFontSize(8); doc.setTextColor(100, 100, 100);
     doc.text('No income this week.', 14, curY + 4); curY += 12;
   }
 
-  // Profit footer
-  doc.setDrawColor(74, 222, 128);
+  // FIX 3: if footer won't fit on this page, add a new page
+  if (curY + 20 > PAGE_H - 15) {
+    doc.addPage();
+    drawPageBorder();
+    curY = 20;
+  }
+
+  // Profit footer line
+  doc.setDrawColor(50, 160, 80);
   doc.setLineWidth(0.4);
-  doc.line(14, curY, W - 14, curY); curY += 6;
+  doc.line(14, curY, W - 14, curY); curY += 7;
+
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
   doc.setTextColor(...pColor);
-  doc.text(`Weekly Profit: Rs.${fmt(profit)}`, W - 14, curY, { align: 'right' });
+  // FIX 1: plain number, no currency prefix
+  doc.text(`Weekly Profit: ${fmt(profit)}`, W - 14, curY, { align: 'right' });
 
+  // Bottom label — always at a safe fixed position
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80,100,80);
-  doc.text('QuarryBook \u00B7 Stone Business Manager', W / 2, 290, { align: 'center' });
+  doc.setTextColor(120, 120, 120);
+  doc.text('QuarryBook - Stone Business Manager', W / 2, PAGE_H - 8, { align: 'center' });
 
   doc.save(`QuarryBook_Weekly_${weekStart}.pdf`);
   addLog('export', `Downloaded weekly report: ${label}`);
