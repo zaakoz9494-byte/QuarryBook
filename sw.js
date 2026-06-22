@@ -3,7 +3,7 @@
    Caches app shell for offline use
 ════════════════════════════════════ */
 
-const CACHE_NAME = 'quarrybook-v2'; // ← bump this every deployment
+const CACHE_NAME = 'quarrybook-v3'; // ← bumped to force cache refresh
 
 // Files to cache for offline use
 const SHELL = [
