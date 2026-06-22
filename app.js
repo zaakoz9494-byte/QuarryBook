@@ -1,5 +1,5 @@
 /* ════════════════════════════════════
-   QuarryBook – app.js
+   QuarryBook - app.js
    Full expense management logic
    Firestore-connected version
 ════════════════════════════════════ */
@@ -132,7 +132,7 @@ let state = {
 
 // ─── CATEGORIES ─────────────────────────────────────
 const EXPENSE_CATEGORIES_DEFAULT = ['Fuel','Vehicle Maintenance','Driver Charges','Loading Charges','Food & Accommodation','Miscellaneous'];
-const INCOME_CATEGORIES_DEFAULT  = ['Stone Load – First Quality','Stone Load – Second Quality','Stone Load – Third Quality'];
+const INCOME_CATEGORIES_DEFAULT  = ['Stone Load - First Quality','Stone Load - Second Quality','Stone Load - Third Quality'];
 const CAT_COLORS = ['#4ade80','#22c55e','#86efac','#bbf7d0','#fbbf24','#60a5fa'];
 const INCOME_COLORS = ['#34d399','#a3e635','#facc15','#fb923c','#c084fc','#38bdf8'];
 
@@ -244,7 +244,7 @@ async function doLogin(e) {
     return;
   }
 
-  // Regular user — look up in Firestore
+  // Regular user - look up in Firestore
   const profile = await fsGetProfile(uname);
   if (!profile) { showToast('User not found. Please register.', 'error'); return; }
   if (profile.pin !== pin) { showToast('Invalid PIN', 'error'); return; }
@@ -260,7 +260,7 @@ async function doRegister() {
   const pin2  = document.getElementById('regPin2').value.trim();
 
   if (!uname || !pin) { showToast('Enter username and PIN', 'error'); return; }
-  if (pin.length < 4 || pin.length > 6) { showToast('PIN must be 4–6 digits', 'error'); return; }
+  if (pin.length < 4 || pin.length > 6) { showToast('PIN must be 4-6 digits', 'error'); return; }
   if (!/^\d+$/.test(pin)) { showToast('PIN must be digits only', 'error'); return; }
   if (pin !== pin2) { showToast('PINs do not match', 'error'); return; }
   if (uname.toUpperCase() === ADMIN_USERNAME.toUpperCase()) { showToast('Username not allowed', 'error'); return; }
@@ -472,11 +472,11 @@ async function saveExpense(e) {
   if (state.editingId) {
     const idx = state.expenses.findIndex(e => e.id === state.editingId);
     state.expenses[idx] = exp;
-    addLog('edit', `Edited expense: ${exp.category} ₹${fmt(exp.amount)} (${exp.date})`);
+    addLog('edit', `Edited expense: ${exp.category} Rs.${fmt(exp.amount)} (${exp.date})`);
     showToast('Expense updated!');
   } else {
     state.expenses.unshift(exp);
-    addLog('add', `Added expense: ${exp.category} ₹${fmt(exp.amount)} (${exp.date})`);
+    addLog('add', `Added expense: ${exp.category} Rs.${fmt(exp.amount)} (${exp.date})`);
     showToast('Expense added!');
   }
 
@@ -491,7 +491,7 @@ function deleteExpense(id) {
   if (!confirm('Delete this expense?')) return;
   const exp = state.expenses.find(e => e.id === id);
   state.expenses = state.expenses.filter(e => e.id !== id);
-  addLog('delete', `Deleted expense: ${exp?.category} ₹${fmt(exp?.amount)} (${exp?.date})`);
+  addLog('delete', `Deleted expense: ${exp?.category} Rs.${fmt(exp?.amount)} (${exp?.date})`);
   deleteExpense_fs(id);
   save();
   renderExpenses();
@@ -531,27 +531,27 @@ function renderExpenses() {
     tbody.innerHTML = '';
     empty.style.display = 'flex';
     document.getElementById('expCount').textContent = '0 expenses';
-    document.getElementById('expTotal').textContent = 'Total: ₹0';
+    document.getElementById('expTotal').textContent = 'Total: Rs.0';
     return;
   }
   empty.style.display = 'none';
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   document.getElementById('expCount').textContent = `${filtered.length} expense${filtered.length !== 1 ? 's' : ''}`;
-  document.getElementById('expTotal').textContent = `Total: ₹${fmt(total)}`;
+  document.getElementById('expTotal').textContent = `Total: Rs.${fmt(total)}`;
 
   tbody.innerHTML = filtered.map(exp => `
     <tr>
       <td><input type="checkbox" class="row-check" value="${exp.id}"></td>
       <td>${formatDate(exp.date)}</td>
       <td><span class="cat-badge">${exp.category}</span></td>
-      <td title="${exp.description || ''}">${truncate(exp.description || '—', 30)}</td>
-      <td>${exp.vendor || '—'}</td>
+      <td title="${exp.description || ''}">${truncate(exp.description || '-', 30)}</td>
+      <td>${exp.vendor || '-'}</td>
       <td><span class="method-badge method-${exp.method}">${exp.method}</span></td>
-      <td class="amount-cell">₹${fmt(exp.amount)}</td>
+      <td class="amount-cell">Rs.${fmt(exp.amount)}</td>
       <td>${exp.bill
         ? `<button class="act-btn" onclick="viewBill(${exp.id})" title="View Bill"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>`
-        : '<span style="color:var(--text-muted);font-size:11px">—</span>'}</td>
+        : '<span style="color:var(--text-muted);font-size:11px">-</span>'}</td>
       <td>
         <div class="action-btns">
           <button class="act-btn edit" onclick="openExpenseModal(${exp.id})" title="Edit"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -583,26 +583,26 @@ function initDashboard() {
   const weekInc  = state.incomes.filter(i => i.date >= weekAgo && i.date <= todayStr);
   const monthInc = state.incomes.filter(i => i.date >= monthAgo && i.date <= todayStr);
 
-  document.getElementById('statToday').textContent  = '₹' + fmt(sum(todayExp));
-  document.getElementById('statWeek').textContent   = '₹' + fmt(sum(weekExp));
-  document.getElementById('statMonth').textContent  = '₹' + fmt(sum(monthExp));
-  document.getElementById('statTotal').textContent  = '₹' + fmt(sum(state.expenses));
+  document.getElementById('statToday').textContent  = 'Rs.' + fmt(sum(todayExp));
+  document.getElementById('statWeek').textContent   = 'Rs.' + fmt(sum(weekExp));
+  document.getElementById('statMonth').textContent  = 'Rs.' + fmt(sum(monthExp));
+  document.getElementById('statTotal').textContent  = 'Rs.' + fmt(sum(state.expenses));
 
-  document.getElementById('statIncToday').textContent  = '₹' + fmt(sum(todayInc));
-  document.getElementById('statIncWeek').textContent   = '₹' + fmt(sum(weekInc));
-  document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
-  document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
+  document.getElementById('statIncToday').textContent  = 'Rs.' + fmt(sum(todayInc));
+  document.getElementById('statIncWeek').textContent   = 'Rs.' + fmt(sum(weekInc));
+  document.getElementById('statIncMonth').textContent  = 'Rs.' + fmt(sum(monthInc));
+  document.getElementById('statIncTotal').textContent  = 'Rs.' + fmt(sum(state.incomes));
 
   const netWeek  = sum(weekInc)  - sum(weekExp);
   const netWeekEl = document.getElementById('statNetWeek');
   if (netWeekEl) {
-    netWeekEl.textContent = (netWeek >= 0 ? '+' : '') + '₹' + fmt(netWeek);
+    netWeekEl.textContent = (netWeek >= 0 ? '+' : '') + 'Rs.' + fmt(netWeek);
     netWeekEl.style.color = netWeek >= 0 ? 'var(--green)' : '#f87171';
   }
 
   const netMonth = sum(monthInc) - sum(monthExp);
   const netEl = document.getElementById('statNetMonth');
-  netEl.textContent = (netMonth >= 0 ? '+' : '') + '₹' + fmt(netMonth);
+  netEl.textContent = (netMonth >= 0 ? '+' : '') + 'Rs.' + fmt(netMonth);
   netEl.style.color = netMonth >= 0 ? 'var(--green)' : '#f87171';
 
   // Recent transactions table (expenses + incomes combined, sorted by date desc)
@@ -623,10 +623,10 @@ function initDashboard() {
       <tr>
         <td>${formatDate(tx.date)}</td>
         <td><span class="cat-badge ${tx._type === 'income' ? 'cat-income' : ''}">${tx.category}</span></td>
-        <td>${truncate(tx.description || '—', 25)}</td>
-        <td>${tx.vendor || tx.buyer || '—'}</td>
+        <td>${truncate(tx.description || '-', 25)}</td>
+        <td>${tx.vendor || tx.buyer || '-'}</td>
         <td><span class="method-badge method-${tx.method}">${tx.method}</span></td>
-        <td class="amount-cell ${tx._type === 'income' ? 'income-amount' : ''}">${tx._type === 'income' ? '+' : '-'}₹${fmt(tx.amount)}</td>
+        <td class="amount-cell ${tx._type === 'income' ? 'income-amount' : ''}">${tx._type === 'income' ? '+' : '-'}Rs.${fmt(tx.amount)}</td>
         <td>
           <div class="action-btns">
             ${tx._type === 'expense'
@@ -699,7 +699,7 @@ function initTrendChart(mode) {
     data: {
       labels,
       datasets: [{
-        label: 'Expenses (₹)',
+        label: 'Expenses (Rs.)',
         data,
         borderColor: '#4ade80',
         backgroundColor: 'rgba(74,222,128,0.08)',
@@ -713,10 +713,10 @@ function initTrendChart(mode) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `₹${fmt(c.raw)}` } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `Rs.${fmt(c.raw)}` } } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a735a', font: { size: 11 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a735a', font: { size: 11 }, callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v) } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a735a', font: { size: 11 }, callback: v => 'Rs.' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v) } }
       }
     }
   });
@@ -746,7 +746,7 @@ function initCategoryChart() {
       maintainAspectRatio: true,
       plugins: {
         legend: { position: 'bottom', labels: { color: '#8fad8f', font: { size: 10 }, padding: 12, boxWidth: 10 } },
-        tooltip: { callbacks: { label: c => `${c.label}: ₹${fmt(c.raw)}` } }
+        tooltip: { callbacks: { label: c => `${c.label}: Rs.${fmt(c.raw)}` } }
       },
       cutout: '60%',
     }
@@ -803,10 +803,10 @@ function performSearch() {
     <tr>
       <td>${formatDate(exp.date)}</td>
       <td><span class="cat-badge">${hi(exp.category)}</span></td>
-      <td>${hi(truncate(exp.description || '—', 30))}</td>
-      <td>${hi(exp.vendor || '—')}</td>
+      <td>${hi(truncate(exp.description || '-', 30))}</td>
+      <td>${hi(exp.vendor || '-')}</td>
       <td><span class="method-badge method-${exp.method}">${exp.method}</span></td>
-      <td class="amount-cell">₹${hi(fmt(exp.amount))}</td>
+      <td class="amount-cell">Rs.${hi(fmt(exp.amount))}</td>
       <td>
         <div class="action-btns">
           <button class="act-btn edit" onclick="openExpenseModal(${exp.id})" title="Edit"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -833,12 +833,12 @@ function generateReport() {
   const total = sum(filtered);
   const days  = from && to ? Math.max(1, (new Date(to) - new Date(from)) / 86400000 + 1) : 30;
 
-  document.getElementById('rTotal').textContent = '₹' + fmt(total);
+  document.getElementById('rTotal').textContent = 'Rs.' + fmt(total);
   document.getElementById('rCount').textContent = filtered.length;
-  document.getElementById('rAvg').textContent   = '₹' + fmt(total / days);
-  document.getElementById('rMax').textContent   = '₹' + fmt(Math.max(...filtered.map(e => e.amount)));
+  document.getElementById('rAvg').textContent   = 'Rs.' + fmt(total / days);
+  document.getElementById('rMax').textContent   = 'Rs.' + fmt(Math.max(...filtered.map(e => e.amount)));
 
-  const title = `${cat || 'All Categories'} | ${from || '—'} to ${to || '—'}`;
+  const title = `${cat || 'All Categories'} | ${from || '-'} to ${to || '-'}`;
   document.getElementById('reportTitle').textContent = title;
 
   document.getElementById('reportBody').innerHTML = filtered.map((exp, i) => `
@@ -846,10 +846,10 @@ function generateReport() {
       <td>${i+1}</td>
       <td>${formatDate(exp.date)}</td>
       <td><span class="cat-badge">${exp.category}</span></td>
-      <td>${exp.description || '—'}</td>
-      <td>${exp.vendor || '—'}</td>
+      <td>${exp.description || '-'}</td>
+      <td>${exp.vendor || '-'}</td>
       <td><span class="method-badge method-${exp.method}">${exp.method}</span></td>
-      <td class="amount-cell">₹${fmt(exp.amount)}</td>
+      <td class="amount-cell">Rs.${fmt(exp.amount)}</td>
     </tr>
   `).join('');
 
@@ -876,7 +876,7 @@ function exportExcel() {
   const rows = data.map((e, i) => ({
     '#': i+1, Date: e.date, Category: e.category,
     Description: e.description || '', Vendor: e.vendor || '',
-    Method: e.method, 'Amount (₹)': e.amount,
+    Method: e.method, 'Amount (Rs.)': e.amount,
   }));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -906,13 +906,13 @@ function exportPDF() {
 
   doc.autoTable({
     startY: 36,
-    head: [['#','Date','Category','Description','Vendor','Method','Amount (₹)']],
-    body: data.map((e,i) => [i+1, e.date, e.category, e.description||'—', e.vendor||'—', e.method, `₹${fmt(e.amount)}`]),
+    head: [['#','Date','Category','Description','Vendor','Method','Amount (Rs.)']],
+    body: data.map((e,i) => [i+1, e.date, e.category, e.description||'-', e.vendor||'-', e.method, `Rs.${fmt(e.amount)}`]),
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [17, 27, 17], textColor: [74, 222, 128], fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [20, 28, 20] },
     bodyStyles: { textColor: [220, 240, 220] },
-    foot: [[`Total: ${data.length} expenses`,'','','','','',`₹${fmt(sum(data))}`]],
+    foot: [[`Total: ${data.length} expenses`,'','','','','',`Rs.${fmt(sum(data))}`]],
     footStyles: { fillColor: [26, 80, 38], textColor: [74, 222, 128], fontStyle: 'bold' },
   });
 
@@ -1088,7 +1088,7 @@ function renderLogs() {
         <div class="log-action">${log.message}</div>
         <div>
           <span class="log-user">${log.user}</span>
-          <span class="log-time"> · ${timeAgo(log.time)}</span>
+          <span class="log-time"> - ${timeAgo(log.time)}</span>
         </div>
       </div>
     </div>
@@ -1114,7 +1114,7 @@ async function clearLogs() {
 function showNotifications() {
   const high = state.expenses.filter(e => e.amount > 10000).slice(0,3);
   const msg = high.length
-    ? `High value expenses: ${high.map(e => '₹'+fmt(e.amount)).join(', ')}`
+    ? `High value expenses: ${high.map(e => 'Rs.'+fmt(e.amount)).join(', ')}`
     : 'No alerts at the moment.';
   showToast(msg);
   document.getElementById('notifBadge').style.display = 'none';
@@ -1148,7 +1148,7 @@ function fmt(n) {
 function sum(arr) { return arr.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0); }
 function truncate(str, len) { return str.length > len ? str.slice(0, len) + '…' : str; }
 function formatDate(d) {
-  if (!d) return '—';
+  if (!d) return '-';
   const dt = new Date(d + 'T00:00:00');
   return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -1261,11 +1261,11 @@ async function saveIncome(e) {
   if (state.editingIncomeId) {
     const idx = state.incomes.findIndex(i => i.id === state.editingIncomeId);
     state.incomes[idx] = inc;
-    addLog('edit', `Edited income: ${inc.category} ₹${fmt(inc.amount)} (${inc.date})`);
+    addLog('edit', `Edited income: ${inc.category} Rs.${fmt(inc.amount)} (${inc.date})`);
     showToast('Income updated!');
   } else {
     state.incomes.unshift(inc);
-    addLog('add', `Added income: ${inc.category} ₹${fmt(inc.amount)} (${inc.date})`);
+    addLog('add', `Added income: ${inc.category} Rs.${fmt(inc.amount)} (${inc.date})`);
     showToast('Income added!');
   }
 
@@ -1280,7 +1280,7 @@ function deleteIncome(id) {
   if (!confirm('Delete this income entry?')) return;
   const inc = state.incomes.find(i => i.id === id);
   state.incomes = state.incomes.filter(i => i.id !== id);
-  addLog('delete', `Deleted income: ${inc?.category} ₹${fmt(inc?.amount)} (${inc?.date})`);
+  addLog('delete', `Deleted income: ${inc?.category} Rs.${fmt(inc?.amount)} (${inc?.date})`);
   deleteIncome_fs(id);
   save();
   renderIncomes();
@@ -1331,24 +1331,24 @@ function renderIncomes() {
     tbody.innerHTML = '';
     empty.style.display = 'flex';
     document.getElementById('incCount').textContent = '0 entries';
-    document.getElementById('incTotal').textContent = 'Total: ₹0';
+    document.getElementById('incTotal').textContent = 'Total: Rs.0';
     return;
   }
   empty.style.display = 'none';
 
   const total = filtered.reduce((s, i) => s + i.amount, 0);
   document.getElementById('incCount').textContent = `${filtered.length} entr${filtered.length !== 1 ? 'ies' : 'y'}`;
-  document.getElementById('incTotal').textContent = `Total: ₹${fmt(total)}`;
+  document.getElementById('incTotal').textContent = `Total: Rs.${fmt(total)}`;
 
   tbody.innerHTML = filtered.map(inc => `
     <tr>
       <td>${formatDate(inc.date)}</td>
       <td><span class="cat-badge cat-income">${inc.category}</span></td>
-      <td>${inc.quantity ? `${inc.quantity} units` : '—'}</td>
-      <td>${inc.ratePerUnit ? '₹' + fmt(inc.ratePerUnit) : '—'}</td>
-      <td>${inc.buyer || '—'}</td>
+      <td>${inc.quantity ? `${inc.quantity} units` : '-'}</td>
+      <td>${inc.ratePerUnit ? 'Rs.' + fmt(inc.ratePerUnit) : '-'}</td>
+      <td>${inc.buyer || '-'}</td>
       <td><span class="method-badge method-${inc.method}">${inc.method}</span></td>
-      <td class="amount-cell income-amount">+₹${fmt(inc.amount)}</td>
+      <td class="amount-cell income-amount">+Rs.${fmt(inc.amount)}</td>
       <td>
         <div class="action-btns">
           <button class="act-btn edit income-edit" onclick="openIncomeModal(${inc.id})" title="Edit"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
@@ -1459,7 +1459,7 @@ function updateExpenseCategorySelects() {
     td.value = today();
   }
 
-  // Show login screen — data loads after successful login
+  // Show login screen - data loads after successful login
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainWrapper').style.display = 'none';
   showLoginForm();
@@ -1493,7 +1493,7 @@ Object.assign(window, {
 function downloadWeeklyReport() {
   const { jsPDF } = window.jspdf;
 
-  // Calculate this week Monday–Sunday
+  // Calculate this week Monday-Sunday
   const now    = new Date();
   const day    = now.getDay();
   const diff   = (day === 0 ? -6 : 1 - day);
@@ -1502,7 +1502,7 @@ function downloadWeeklyReport() {
 
   const weekStart = dateStr(monday);
   const weekEnd   = dateStr(sunday);
-  const label     = `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+  const label     = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
 
   const weekExp = state.expenses.filter(e => e.date >= weekStart && e.date <= weekEnd);
   const weekInc = (state.incomes || []).filter(i => i.date >= weekStart && i.date <= weekEnd);
@@ -1567,7 +1567,7 @@ function downloadWeeklyReport() {
     doc.autoTable({
       startY: curY,
       head: [['Date','Category','Description','Vendor','Method','Amount (Rs.)']],
-      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'—', e.vendor||'—', e.method, `Rs.${fmt(e.amount)}`]),
+      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'-', e.vendor||'-', e.method, `Rs.${fmt(e.amount)}`]),
       foot: [['','','','','Total', `Rs.${fmt(totalExp)}`]],
       styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
       headStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
@@ -1590,7 +1590,7 @@ function downloadWeeklyReport() {
     doc.autoTable({
       startY: curY,
       head: [['Date','Category','Description','Method','Amount (Rs.)']],
-      body: weekInc.map(i => [formatDate(i.date), i.category||'—', i.description||'—', i.method||'—', `Rs.${fmt(i.amount)}`]),
+      body: weekInc.map(i => [formatDate(i.date), i.category||'-', i.description||'-', i.method||'-', `Rs.${fmt(i.amount)}`]),
       foot: [['','','','Total', `Rs.${fmt(totalInc)}`]],
       styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
       headStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
