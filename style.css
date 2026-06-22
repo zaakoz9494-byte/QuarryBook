@@ -890,3 +890,33 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
     }
   }
 }
+
+/* ─── WEEKLY REPORT BUTTON ─── */
+.dash-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+.btn-weekly-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--green);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-weekly-report:hover {
+  background: var(--green-glow);
+  border-color: var(--green);
+}
+.btn-weekly-report:active { opacity: 0.8; transform: scale(0.97); }
+@media (max-width: 768px) {
+  .btn-weekly-report { width: 100%; justify-content: center; font-size: 14px; padding: 10px; }
+}
