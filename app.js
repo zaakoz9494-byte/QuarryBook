@@ -1537,7 +1537,7 @@ function downloadWeeklyReport() {
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('TOTAL EXPENSES', 14 + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`\u20B9${fmt(totalExp)}`, 14 + bw/2, boxY + 16, { align: 'center' });
+  doc.text(`Rs.${fmt(totalExp)}`, 14 + bw/2, boxY + 16, { align: 'center' });
 
   doc.setFillColor(15, 35, 15);
   doc.roundedRect(14 + bw + gap, boxY, bw, boxH, 3, 3, 'F');
@@ -1545,7 +1545,7 @@ function downloadWeeklyReport() {
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('TOTAL INCOME', 14 + bw + gap + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`\u20B9${fmt(totalInc)}`, 14 + bw + gap + bw/2, boxY + 16, { align: 'center' });
+  doc.text(`Rs.${fmt(totalInc)}`, 14 + bw + gap + bw/2, boxY + 16, { align: 'center' });
 
   const pColor = profit >= 0 ? [74, 222, 128] : [248, 113, 113];
   doc.setFillColor(profit >= 0 ? 15 : 40, profit >= 0 ? 40 : 15, 15);
@@ -1554,7 +1554,7 @@ function downloadWeeklyReport() {
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('WEEKLY PROFIT', 14 + (bw + gap) * 2 + bw/2, boxY + 7, { align: 'center' });
   doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-  doc.text(`\u20B9${fmt(profit)}`, 14 + (bw + gap) * 2 + bw/2, boxY + 16, { align: 'center' });
+  doc.text(`Rs.${fmt(profit)}`, 14 + (bw + gap) * 2 + bw/2, boxY + 16, { align: 'center' });
 
   let curY = boxY + boxH + 8;
 
@@ -1566,9 +1566,9 @@ function downloadWeeklyReport() {
   if (weekExp.length) {
     doc.autoTable({
       startY: curY,
-      head: [['Date','Category','Description','Vendor','Method','Amount (\u20B9)']],
-      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'—', e.vendor||'—', e.method, `\u20B9${fmt(e.amount)}`]),
-      foot: [['','','','','Total', `\u20B9${fmt(totalExp)}`]],
+      head: [['Date','Category','Description','Vendor','Method','Amount (Rs.)']],
+      body: weekExp.map(e => [formatDate(e.date), e.category, e.description||'—', e.vendor||'—', e.method, `Rs.${fmt(e.amount)}`]),
+      foot: [['','','','','Total', `Rs.${fmt(totalExp)}`]],
       styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
       headStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
       footStyles: { fillColor: [40,15,15], textColor: [248,113,113], fontStyle: 'bold' },
@@ -1589,9 +1589,9 @@ function downloadWeeklyReport() {
   if (weekInc.length) {
     doc.autoTable({
       startY: curY,
-      head: [['Date','Category','Description','Method','Amount (\u20B9)']],
-      body: weekInc.map(i => [formatDate(i.date), i.category||'—', i.description||'—', i.method||'—', `\u20B9${fmt(i.amount)}`]),
-      foot: [['','','','Total', `\u20B9${fmt(totalInc)}`]],
+      head: [['Date','Category','Description','Method','Amount (Rs.)']],
+      body: weekInc.map(i => [formatDate(i.date), i.category||'—', i.description||'—', i.method||'—', `Rs.${fmt(i.amount)}`]),
+      foot: [['','','','Total', `Rs.${fmt(totalInc)}`]],
       styles: { fontSize: 8, cellPadding: 2.5, textColor: [220, 240, 220] },
       headStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
       footStyles: { fillColor: [15,35,15], textColor: [74,222,128], fontStyle: 'bold' },
@@ -1610,7 +1610,7 @@ function downloadWeeklyReport() {
   doc.line(14, curY, W - 14, curY); curY += 6;
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
   doc.setTextColor(...pColor);
-  doc.text(`Weekly Profit: \u20B9${fmt(profit)}`, W - 14, curY, { align: 'right' });
+  doc.text(`Weekly Profit: Rs.${fmt(profit)}`, W - 14, curY, { align: 'right' });
 
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.setTextColor(80,100,80);
