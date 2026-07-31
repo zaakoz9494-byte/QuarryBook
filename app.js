@@ -383,6 +383,13 @@ function toggleTheme() {
   const toggleEl = document.getElementById('darkToggle');
   if (toggleEl) toggleEl.checked = !isDark;
   localStorage.setItem('qb_theme', isDark ? 'light' : 'dark');
+
+  // Brief spin feedback on the theme icon
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.classList.add('theme-spin');
+    setTimeout(() => themeBtn.classList.remove('theme-spin'), 400);
+  }
 }
 
 // ─── EXPENSE MODAL ───────────────────────────────────
@@ -583,26 +590,26 @@ function initDashboard() {
   const weekInc  = state.incomes.filter(i => i.date >= weekAgo && i.date <= todayStr);
   const monthInc = state.incomes.filter(i => i.date >= monthAgo && i.date <= todayStr);
 
-  document.getElementById('statToday').textContent  = '₹' + fmt(sum(todayExp));
-  document.getElementById('statWeek').textContent   = '₹' + fmt(sum(weekExp));
-  document.getElementById('statMonth').textContent  = '₹' + fmt(sum(monthExp));
-  document.getElementById('statTotal').textContent  = '₹' + fmt(sum(state.expenses));
+  animateStatValue('statToday', sum(todayExp));
+  animateStatValue('statWeek',  sum(weekExp));
+  animateStatValue('statMonth', sum(monthExp));
+  animateStatValue('statTotal', sum(state.expenses));
 
-  document.getElementById('statIncToday').textContent  = '₹' + fmt(sum(todayInc));
-  document.getElementById('statIncWeek').textContent   = '₹' + fmt(sum(weekInc));
-  document.getElementById('statIncMonth').textContent  = '₹' + fmt(sum(monthInc));
-  document.getElementById('statIncTotal').textContent  = '₹' + fmt(sum(state.incomes));
+  animateStatValue('statIncToday', sum(todayInc));
+  animateStatValue('statIncWeek',  sum(weekInc));
+  animateStatValue('statIncMonth', sum(monthInc));
+  animateStatValue('statIncTotal', sum(state.incomes));
 
   const netWeek  = sum(weekInc)  - sum(weekExp);
   const netWeekEl = document.getElementById('statNetWeek');
   if (netWeekEl) {
-    netWeekEl.textContent = (netWeek >= 0 ? '+' : '') + '₹' + fmt(netWeek);
+    animateStatValue('statNetWeek', netWeek, '₹', true);
     netWeekEl.style.color = netWeek >= 0 ? 'var(--green)' : '#f87171';
   }
 
   const netMonth = sum(monthInc) - sum(monthExp);
   const netEl = document.getElementById('statNetMonth');
-  netEl.textContent = (netMonth >= 0 ? '+' : '') + '₹' + fmt(netMonth);
+  animateStatValue('statNetMonth', netMonth, '₹', true);
   netEl.style.color = netMonth >= 0 ? 'var(--green)' : '#f87171';
 
   // Recent transactions table (expenses + incomes combined, sorted by date desc)
@@ -1125,6 +1132,10 @@ let toastTimer = null;
 function showToast(msg, type = 'success') {
   const el = document.getElementById('toast');
   el.textContent = msg;
+  // Force a reflow so the entrance animation restarts even if a toast
+  // is already showing (removing 'show' first resets the animation state).
+  el.classList.remove('show');
+  void el.offsetWidth;
   el.className = `toast ${type} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
@@ -1145,6 +1156,46 @@ function fmt(n) {
   if (isNaN(n)) return '0';
   return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 }
+
+// ─── ANIMATED STAT VALUES ─────────────────────────────
+// Counts a stat card's number up/down from its current displayed value
+// to the target value instead of snapping instantly.
+const _statAnimFrames = {};
+function animateStatValue(elId, targetNum, prefix = '₹', signed = false) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  cancelAnimationFrame(_statAnimFrames[elId]);
+
+  const parsePrev = () => {
+    const raw = el.textContent.replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(raw);
+    return isNaN(n) ? 0 : n;
+  };
+  const from = parsePrev();
+  const to = targetNum;
+  const duration = 450;
+  const start = performance.now();
+
+  // Respect reduced-motion preference
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = (signed ? (to >= 0 ? '+' : '') : '') + prefix + fmt(to);
+    return;
+  }
+
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    const val = from + (to - from) * eased;
+    el.textContent = (signed ? (val >= 0 ? '+' : '') : '') + prefix + fmt(val);
+    if (t < 1) {
+      _statAnimFrames[elId] = requestAnimationFrame(step);
+    } else {
+      el.textContent = (signed ? (to >= 0 ? '+' : '') : '') + prefix + fmt(to);
+    }
+  }
+  _statAnimFrames[elId] = requestAnimationFrame(step);
+}
+
 function sum(arr) { return arr.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0); }
 function truncate(str, len) { return str.length > len ? str.slice(0, len) + '…' : str; }
 function formatDate(d) {
@@ -1488,6 +1539,32 @@ Object.assign(window, {
   addCustomExpCat, addCustomIncCat, removeCustomExpCat, removeCustomIncCat,
   clearIncomeFilters, showRegisterForm, showLoginForm, doLogin, doRegister,
 });
+
+// ─── RIPPLE CLICK FEEDBACK ────────────────────────────
+// Adds a small expanding ripple on any button/interactive control the
+// user taps, for tactile visual feedback. Delegated so it works on
+// dynamically-rendered buttons (table action buttons, chips, etc.) too.
+(function initRippleEffect() {
+  const RIPPLE_SELECTOR = '.btn-primary, .add-expense-btn, .btn-weekly-report, .btn-ghost, .act-btn, .icon-btn, .chip, .chart-tab, .nav-item, .mobile-nav button';
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.addEventListener('click', (e) => {
+    if (reduceMotion()) return;
+    const target = e.target.closest(RIPPLE_SELECTOR);
+    if (!target) return;
+
+    const rect = target.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple-el';
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
+    target.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+    setTimeout(() => ripple.remove(), 700); // fallback cleanup
+  }, { passive: true });
+})();
 
 // ─── WEEKLY PROFIT REPORT PDF ─────────────────────────
 function downloadWeeklyReport() {
