@@ -920,3 +920,238 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 @media (max-width: 768px) {
   .btn-weekly-report { width: 100%; justify-content: center; font-size: 14px; padding: 10px; }
 }
+
+/* ══════════════════════════════════════════════════════
+   DYNAMIC ANIMATIONS & MICRO-INTERACTIONS
+═══════════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+}
+@keyframes ripple {
+  to { transform: scale(2.6); opacity: 0; }
+}
+@keyframes iconPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
+@keyframes badgeBounce {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+@keyframes toastSlideIn {
+  0%   { transform: translateY(24px) scale(0.96); opacity: 0; }
+  60%  { transform: translateY(-3px) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ─── PAGE TRANSITIONS ─── */
+.page.active { animation: fadeInUp 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── STAT CARDS: staggered entrance + livelier hover ─── */
+.stat-grid .stat-card {
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stat-grid .stat-card:nth-child(1) { animation-delay: 0.03s; }
+.stat-grid .stat-card:nth-child(2) { animation-delay: 0.08s; }
+.stat-grid .stat-card:nth-child(3) { animation-delay: 0.13s; }
+.stat-grid .stat-card:nth-child(4) { animation-delay: 0.18s; }
+.stat-card {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color var(--transition), box-shadow 0.25s ease;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+}
+[data-theme="light"] .stat-card:hover { box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
+.stat-card:hover .stat-icon { transform: scale(1.1) rotate(-4deg); }
+.stat-icon { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.stat-value { transition: color 0.2s ease; }
+
+/* ─── CARDS & CHART CARDS: gentle entrance ─── */
+.card { animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.charts-row .chart-card:nth-child(1) { animation-delay: 0.05s; }
+.charts-row .chart-card:nth-child(2) { animation-delay: 0.1s; }
+
+/* ─── SIDEBAR NAV: smooth active state + press feedback ─── */
+.nav-item {
+  position: relative;
+  transform: translateX(0);
+}
+.nav-item:hover { transform: translateX(2px); }
+.nav-item:active { transform: translateX(2px) scale(0.98); }
+.nav-item svg { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease; }
+.nav-item:hover svg { transform: scale(1.1); }
+.nav-item.active { animation: scaleIn 0.25s ease both; }
+
+/* Mobile bottom nav press + active pop */
+.mobile-nav button svg { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mobile-nav button.active svg { animation: iconPop 0.4s ease; }
+.mobile-nav button:active svg { transform: scale(0.85); }
+
+/* ─── BUTTONS: press feedback + ripple ─── */
+.btn-primary, .add-expense-btn, .btn-weekly-report, .btn-ghost, .act-btn, .icon-btn, .chip, .chart-tab,
+.nav-item, .mobile-nav button {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+.btn-primary:active, .add-expense-btn:active, .btn-weekly-report:active {
+  transform: scale(0.96);
+}
+.btn-ghost:active, .act-btn:active, .icon-btn:active { transform: scale(0.92); }
+.chip:active, .chart-tab:active { transform: scale(0.94); }
+
+.ripple-el {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 0.55s ease-out forwards;
+}
+[data-theme="light"] .ripple-el { background: rgba(0,0,0,0.12); }
+
+/* Notification badge pulse + count bounce */
+.icon-btn .badge { animation: badgeBounce 2.4s ease-in-out infinite; }
+
+/* Theme toggle icon rotation */
+#themeIcon { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.theme-spin #themeIcon { transform: rotate(180deg); }
+
+/* ─── MODALS: springier entrance ─── */
+.modal {
+  transform: translateY(24px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+.modal-overlay { transition: opacity 0.25s ease, backdrop-filter 0.25s ease; }
+
+/* Form field focus glow */
+.form-group input, .form-group select, .form-group textarea,
+.filter-row select, .filter-row input, #globalSearch {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus,
+.filter-row select:focus, .filter-row input:focus, #globalSearch:focus {
+  box-shadow: 0 0 0 3px var(--green-glow);
+}
+
+/* ─── FILE DROP: hover lift ─── */
+.file-drop { transition: all var(--transition), transform 0.2s ease; }
+.file-drop:hover { transform: translateY(-2px); }
+.file-drop.has-file { animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ─── TABLE ROWS: staggered fade-in + hover slide ─── */
+.data-table tbody tr {
+  animation: fadeInUp 0.35s ease both;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.data-table tbody tr:nth-child(1) { animation-delay: 0.02s; }
+.data-table tbody tr:nth-child(2) { animation-delay: 0.05s; }
+.data-table tbody tr:nth-child(3) { animation-delay: 0.08s; }
+.data-table tbody tr:nth-child(4) { animation-delay: 0.11s; }
+.data-table tbody tr:nth-child(5) { animation-delay: 0.14s; }
+.data-table tbody tr:nth-child(n+6) { animation-delay: 0.16s; }
+.data-table tbody tr:hover { transform: translateX(2px); }
+.act-btn svg { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.act-btn:hover svg { transform: scale(1.15); }
+
+/* ─── BADGES: subtle entrance ─── */
+.method-badge, .cat-badge, .ul-badge { animation: fadeIn 0.3s ease both; }
+
+/* ─── TOAST: bouncier entrance ─── */
+.toast.show { animation: toastSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ─── EMPTY STATE: gentle float-in ─── */
+.empty-state { animation: fadeIn 0.5s ease both; }
+.empty-state svg { animation: fadeInUp 0.5s ease both; }
+
+/* ─── LOGIN SCREEN: entrance ─── */
+.login-card { animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.login-logo svg { transition: transform 0.3s ease; }
+.login-card:hover .login-logo svg { transform: rotate(-4deg) scale(1.05); }
+
+/* ─── TOGGLE SWITCH: smoother spring ─── */
+.toggle-track::before { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ─── LOADING SKELETON (for async/initial data loads) ─── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface3);
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+.skeleton::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+}
+[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.05), transparent);
+  background-size: 400px 100%;
+}
+
+/* ─── SPINNER (for buttons mid-action) ─── */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ─── SIDEBAR SLIDE (mobile drawer) — smoother easing ─── */
+.sidebar { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ─── HAMBURGER ICON PRESS ─── */
+.hamburger:active { transform: scale(0.9); }
+.hamburger { transition: transform 0.15s ease; }
+
+/* ─── ADD-EXPENSE FAB PULSE (draw attention when list empty) ─── */
+.mob-add-btn.attn { animation: softPulse 1.8s ease-in-out infinite; }
+
+/* ─── REDUCED MOTION: respect accessibility preference ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
