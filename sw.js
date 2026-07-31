@@ -3,7 +3,7 @@
    Caches app shell for offline use
 ════════════════════════════════════ */
 
-const CACHE_NAME = 'quarrybook-v3'; // ← bumped to force cache refresh
+const CACHE_NAME = 'quarrybook-v4'; // ← bumped: new UI animations in app.js/style.css
 
 // Files to cache for offline use
 const SHELL = [
