@@ -4,7 +4,7 @@
   --surface: #111811;
   --surface2: #182018;
   --surface3: #1e271e;
-  --border: #2a3a2a;
+  --border: #2a3a2a;a
   --border2: #3a4e3a;
   --green: #4ade80;
   --green-dim: #22c55e;
@@ -1199,4 +1199,21 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .add-sheet-icon.income svg { stroke: var(--blue); }
   .mob-add-btn { transition: transform 0.2s ease; }
   .mob-add-btn.sheet-open { transform: rotate(45deg); }
+}
+
+/* ─── MOBILE MODAL FIX: save button hidden behind bottom nav / browser bar ─── */
+@media (max-width: 768px) {
+  /* Modal overlay had the same z-index (500) as the bottom nav, and the nav comes later
+     in the page, so it was painting over the bottom of the modal. Lift modals above it. */
+  .modal-overlay { z-index: 700 !important; }
+
+  /* 94vh is taller than the visible area on mobile browsers (address bar / toolbar).
+     dvh tracks the real visible height; vh line is the fallback for older browsers. */
+  .modal, .modal-box {
+    max-height: 94vh !important;
+    max-height: 94dvh !important;
+  }
+
+  /* Breathing room under the Save / Cancel row so it can scroll fully into view */
+  .modal-form { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
 }
