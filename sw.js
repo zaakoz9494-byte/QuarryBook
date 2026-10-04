@@ -3,7 +3,7 @@
    Caches app shell for offline use
 ════════════════════════════════════ */
 
-const CACHE_NAME = 'quarrybook-v8'; // ← bumped: lock background scroll behind popups
+const CACHE_NAME = 'quarrybook-v9'; // ← bumped: own JS/CSS now network-first
 
 // Files to cache for offline use
 const SHELL = [
@@ -66,6 +66,23 @@ self.addEventListener('fetch', e => {
           return response;
         })
         .catch(() => caches.match('/index.html')) // fallback if offline
+    );
+    return;
+  }
+
+  // Network-first for our own JS/CSS so fixes reach users on the next load.
+  // Falls back to the cached copy when offline.
+  if (url.origin === self.location.origin && /\.(js|css)$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          if (e.request.method === 'GET' && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(e.request))
     );
     return;
   }
