@@ -393,6 +393,22 @@ function toggleTheme() {
 }
 
 // ─── EXPENSE MODAL ───────────────────────────────────
+
+/* ─── MOBILE ADD SHEET ─── */
+function toggleAddSheet() {
+  const open = !document.getElementById('addSheet').classList.contains('open');
+  setAddSheet(open);
+}
+function closeAddSheet() { setAddSheet(false); }
+function setAddSheet(open) {
+  document.getElementById('addSheet').classList.toggle('open', open);
+  document.getElementById('addSheetBackdrop').classList.toggle('open', open);
+  const btn = document.getElementById('mobAddBtn');
+  btn.classList.toggle('sheet-open', open);
+  btn.setAttribute('aria-expanded', String(open));
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAddSheet(); });
+
 function openExpenseModal(id = null) {
   state.editingId = id;
   const form = document.getElementById('expenseForm');
