@@ -3,7 +3,7 @@
    Caches app shell for offline use
 ════════════════════════════════════ */
 
-const CACHE_NAME = 'quarrybook-v7'; // ← bumped: mobile modal save-button fix
+const CACHE_NAME = 'quarrybook-v8'; // ← bumped: lock background scroll behind popups
 
 // Files to cache for offline use
 const SHELL = [
