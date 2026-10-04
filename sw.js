@@ -3,7 +3,7 @@
    Caches app shell for offline use
 ════════════════════════════════════ */
 
-const CACHE_NAME = 'quarrybook-v5'; // ← bumped: mobile + button now opens Expense/Income sheet
+const CACHE_NAME = 'quarrybook-v6'; // ← bumped: expose add-sheet functions to window
 
 // Files to cache for offline use
 const SHELL = [
