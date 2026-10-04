@@ -1554,6 +1554,7 @@ Object.assign(window, {
   handleIncFileUpload, calcIncomeTotal,
   addCustomExpCat, addCustomIncCat, removeCustomExpCat, removeCustomIncCat,
   clearIncomeFilters, showRegisterForm, showLoginForm, doLogin, doRegister,
+  toggleAddSheet, closeAddSheet,
 });
 
 // ─── RIPPLE CLICK FEEDBACK ────────────────────────────
