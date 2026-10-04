@@ -1739,3 +1739,30 @@ function downloadWeeklyReport() {
   addLog('export', `Downloaded weekly report: ${label}`);
   showToast('Weekly report downloaded!');
 }
+
+// ─── LOCK BACKGROUND SCROLL WHILE ANY POPUP IS OPEN ───────────────
+// The page itself (body) scrolls, so on phones a swipe inside a popup was
+// scrolling the page behind it. While any .modal-overlay is open we freeze
+// the body in place (works on iOS Safari too) and restore the position after.
+(function lockScrollWhileModalOpen() {
+  let locked = false, savedY = 0;
+  const sync = () => {
+    const anyOpen = !!document.querySelector('.modal-overlay.open');
+    if (anyOpen && !locked) {
+      savedY = window.scrollY;
+      document.body.style.top = `-${savedY}px`;
+      document.body.classList.add('modal-open');
+      locked = true;
+    } else if (!anyOpen && locked) {
+      document.body.classList.remove('modal-open');
+      document.body.style.top = '';
+      window.scrollTo(0, savedY);
+      locked = false;
+    }
+  };
+  const observer = new MutationObserver(sync);
+  document.querySelectorAll('.modal-overlay').forEach(el =>
+    observer.observe(el, { attributes: true, attributeFilter: ['class'] })
+  );
+  sync();
+})();
