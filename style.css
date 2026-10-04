@@ -4,7 +4,7 @@
   --surface: #111811;
   --surface2: #182018;
   --surface3: #1e271e;
-  --border: #2a3a2a;a
+  --border: #2a3a2a;
   --border2: #3a4e3a;
   --green: #4ade80;
   --green-dim: #22c55e;
@@ -1216,4 +1216,15 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 
   /* Breathing room under the Save / Cancel row so it can scroll fully into view */
   .modal-form { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ─── STOP BACKGROUND SCROLLING BEHIND POPUPS ─── */
+body.modal-open {
+  position: fixed;
+  left: 0; right: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.modal, .modal-box {
+  overscroll-behavior: contain; /* don't pass scroll to the page when the popup hits top/bottom */
 }
